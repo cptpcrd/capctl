@@ -1,0 +1,14 @@
+[package]
+name = "capctl"
+version = "0.1.0"
+edition = "2018"
+
+readme = "README.md"
+authors = ["cptpcrd"]
+license = "MIT"
+categories = ["os::linux-apis"]
+repository = "https://github.com/cptpcrd/capctl"
+
+[dependencies]
+libc = "0.2"
+bitflags = "1.2"

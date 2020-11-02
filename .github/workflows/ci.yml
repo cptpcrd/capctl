@@ -1,0 +1,107 @@
+name: CI
+on: [push, pull_request]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: Build
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        toolchain: [stable, beta, nightly]
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+          - i686-unknown-linux-gnu
+          - i686-unknown-linux-musl
+        os: [ubuntu-latest]
+
+    # Allow nightly builds to fail
+    continue-on-error: ${{ matrix.toolchain == 'nightly' }}
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Set up repo
+        uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          target: ${{ matrix.target }}
+      - name: Install 32-bit glibc build dependencies
+        run: sudo apt install gcc-multilib
+        if: matrix.os == 'ubuntu-latest' && matrix.target == 'i686-unknown-linux-gnu'
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          command: build
+          args: --verbose --target ${{ matrix.target }}
+
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          command: test
+          args: --verbose --target ${{ matrix.target }}
+        # Only try to run the tests if the OS/architecture we're building for
+        # matches the host machine.
+        if: >-
+          matrix.os == 'ubuntu-latest' && (startsWith(matrix.target, 'x86_64-unknown-linux-')
+              || startsWith(matrix.target, 'i686-unknown-linux-'))
+
+  coverage-tarpaulin:
+    name: Tarpaulin
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        toolchain: [stable]
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          target: ${{ matrix.target }}
+
+      - name: Install tarpaulin
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-tarpaulin
+          version: latest
+          use-tool-cache: true
+
+      - name: Run tarpaulin
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          command: tarpaulin
+          args: --verbose --out Xml --target ${{ matrix.target }}
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1.0.13
+        with:
+          name: ${{ matrix.toolchain }}-${{ matrix.target }}
+          fail_ci_if_error: true
+          env_vars: OS,TARGET,TOOLCHAIN,JOB
+        env:
+          JOB: ${{ github.job }}
+          OS: ${{ matrix.os }}
+          TARGET: ${{ matrix.target }}
+          TOOLCHAIN: ${{ matrix.toolchain }}
