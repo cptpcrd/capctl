@@ -181,6 +181,58 @@ mod tests {
 
     #[test]
     fn test_nnp() {
-        get_no_new_privs().unwrap();
+        set_no_new_privs();
+        assert!(get_no_new_privs().unwrap());
+        set_no_new_privs();
+        assert!(get_no_new_privs().unwrap());
+    }
+
+    #[test]
+    fn test_subreaper() {
+        let was_subreaper = get_subreaper().unwrap();
+
+        set_subreaper(false).unwrap();
+        assert!(!get_subreaper().unwrap());
+        set_subreaper(true).unwrap();
+        assert!(get_subreaper().unwrap());
+
+        set_subreaper(was_subreaper).unwrap();
+    }
+
+    #[test]
+    fn test_pdeathsig() {
+        let orig_pdeathsig = get_pdeathsig().unwrap();
+
+        set_pdeathsig(None).unwrap();
+        assert_eq!(get_pdeathsig().unwrap(), None);
+        set_pdeathsig(Some(0)).unwrap();
+        assert_eq!(get_pdeathsig().unwrap(), None);
+
+        set_pdeathsig(Some(libc::SIGCHLD)).unwrap();
+        assert_eq!(get_pdeathsig().unwrap(), Some(libc::SIGCHLD));
+
+        set_pdeathsig(orig_pdeathsig).unwrap();
+    }
+
+    #[test]
+    fn test_dumpable() {
+        assert!(get_dumpable().unwrap());
+        // We can't set it to false because somebody may be ptrace()ing us during testing
+        set_dumpable(true).unwrap();
+        assert!(get_dumpable().unwrap());
+    }
+
+    #[test]
+    fn test_name() {
+        let orig_name = get_name().unwrap();
+
+        set_name("capctl-short").unwrap();
+        assert_eq!(get_name().unwrap(), "capctl-short");
+
+        set_name("capctl-very-very-long").unwrap();
+        assert_eq!(get_name().unwrap(), "capctl-very-ver");
+
+        set_name(&orig_name).unwrap();
+        assert_eq!(get_name().unwrap(), orig_name);
     }
 }
