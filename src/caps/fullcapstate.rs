@@ -29,7 +29,9 @@ impl FullCapState {
     pub fn get_for_pid(mut pid: libc::pid_t) -> io::Result<Self> {
         match pid.cmp(&0) {
             std::cmp::Ordering::Less => return Err(io::Error::from_raw_os_error(libc::EINVAL)),
-            std::cmp::Ordering::Equal => pid = std::process::id() as libc::pid_t,
+            std::cmp::Ordering::Equal => {
+                pid = unsafe { libc::syscall(libc::SYS_gettid) } as libc::pid_t
+            }
             std::cmp::Ordering::Greater => (),
         }
 
