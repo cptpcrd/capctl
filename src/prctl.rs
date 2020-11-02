@@ -116,7 +116,7 @@ pub fn set_pdeathsig(sig: Option<libc::c_int>) -> io::Result<()> {
 }
 
 #[inline]
-pub fn get_pdeathsig() -> io::Result<libc::c_int> {
+pub fn get_pdeathsig() -> io::Result<Option<libc::c_int>> {
     let mut sig = 0;
 
     unsafe {
@@ -129,7 +129,7 @@ pub fn get_pdeathsig() -> io::Result<libc::c_int> {
         )
     }?;
 
-    Ok(sig)
+    Ok(if sig == 0 { None } else { Some(sig) })
 }
 
 bitflags::bitflags! {
