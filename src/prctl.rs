@@ -6,6 +6,10 @@ pub fn set_name<N: AsRef<OsStr>>(name: N) -> io::Result<()> {
     let name = name.as_ref().as_bytes();
     let mut ptr: *const u8 = name.as_ptr();
 
+    if name.contains(&0) {
+        return Err(io::Error::from_raw_os_error(libc::EINVAL));
+    }
+
     let mut buf = [0; 16];
     if name.len() < 16 {
         buf[..name.len()].copy_from_slice(name);
@@ -231,6 +235,11 @@ mod tests {
 
         set_name("capctl-very-very-long").unwrap();
         assert_eq!(get_name().unwrap(), "capctl-very-ver");
+
+        assert_eq!(
+            set_name("a\0").unwrap_err().raw_os_error(),
+            Some(libc::EINVAL)
+        );
 
         set_name(&orig_name).unwrap();
         assert_eq!(get_name().unwrap(), orig_name);
