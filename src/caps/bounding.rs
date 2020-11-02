@@ -2,6 +2,7 @@ use std::io;
 
 use super::{Cap, CapSet};
 
+/// Drop the given capability from the current thread's bounding capability set.
 #[inline]
 pub fn drop(cap: Cap) -> io::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_CAPBSET_DROP, cap as libc::c_ulong, 0, 0, 0) }?;
@@ -9,6 +10,7 @@ pub fn drop(cap: Cap) -> io::Result<()> {
     Ok(())
 }
 
+/// Check if the given capability is raised in the current thread's bounding capability set.
 #[inline]
 pub fn read(cap: Cap) -> Option<bool> {
     Some(
@@ -16,12 +18,16 @@ pub fn read(cap: Cap) -> Option<bool> {
     )
 }
 
-// Slightly easier to understand than read()
+/// Check if the given capability is raised in the current thread's bounding capability set.
+///
+/// This is an alias of [`read()`](./fn.read.html).
 #[inline]
 pub fn is_set(cap: Cap) -> Option<bool> {
     read(cap)
 }
 
+/// "Probes" the current thread's bounding capability set and returns a `CapSet` representing all
+/// the capabilities that are currently raised.
 pub fn probe() -> CapSet {
     let mut set = CapSet::empty();
 

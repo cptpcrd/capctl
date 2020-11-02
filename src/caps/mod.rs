@@ -13,6 +13,7 @@ pub use capstate::CapState;
 pub use file::FileCaps;
 pub use fullcapstate::FullCapState;
 
+/// An enum representing all of the possible Linux capabilities.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 #[repr(u8)]
 #[allow(non_camel_case_types)]
@@ -218,6 +219,11 @@ impl fmt::Display for Cap {
     }
 }
 
+/// An iterator over all the capabilities enumerated in `Cap`.
+///
+/// This is constructed by [`Cap::iter()`].
+///
+/// [`Cap::iter()`]: ./enum.Cap.html#method.iter
 #[derive(Clone)]
 pub struct CapIter {
     i: u8,

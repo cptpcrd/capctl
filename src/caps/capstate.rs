@@ -3,6 +3,7 @@ use std::io;
 use super::util::combine_raw_u32s;
 use super::CapSet;
 
+/// Represents the permitted, effective, and inheritable capability sets of a thread.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct CapState {
     pub effective: CapSet,
@@ -11,11 +12,15 @@ pub struct CapState {
 }
 
 impl CapState {
+    /// Get the capability state of the current thread.
+    ///
+    /// This is equivalent to `CapState::get_for_pid(0)`.
     #[inline]
     pub fn get_current() -> io::Result<Self> {
         Self::get_for_pid(0)
     }
 
+    /// Get the capability state of the process (or thread) with the given PID (or TID).
     pub fn get_for_pid(pid: libc::pid_t) -> io::Result<Self> {
         let mut header = crate::externs::cap_user_header_t {
             version: crate::constants::_LINUX_CAPABILITY_VERSION_3,
@@ -48,6 +53,7 @@ impl CapState {
         })
     }
 
+    /// Set the current capability state to the state represented by this object.
     pub fn set_current(&self) -> io::Result<()> {
         let mut header = crate::externs::cap_user_header_t {
             version: crate::constants::_LINUX_CAPABILITY_VERSION_3,

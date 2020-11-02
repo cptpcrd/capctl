@@ -6,6 +6,7 @@ use std::os::unix::prelude::*;
 use super::util::combine_raw_u32s;
 use super::CapSet;
 
+/// Represents the capabilities attached to a file.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct FileCaps {
     pub effective: bool,
@@ -15,6 +16,7 @@ pub struct FileCaps {
 }
 
 impl FileCaps {
+    /// Construct an empty `FileCaps` object.
     pub fn empty() -> Self {
         Self {
             effective: false,
@@ -24,6 +26,12 @@ impl FileCaps {
         }
     }
 
+    /// Get the file capabilities attached to the file identified by `path`.
+    ///
+    /// If an error occurs while retrieving information on the capabilities from the given file,
+    /// this method returns `Err(<error>)`. Otherwise, if the given file has no file capabilities
+    /// attached, this method returns `Ok(None)`. Otherwise, this method returns
+    /// `Ok(Some(<capabilities>))`.
     pub fn get_for_file<P: AsRef<OsStr>>(path: P) -> io::Result<Option<Self>> {
         let mut data = [0; crate::constants::XATTR_CAPS_MAX_SIZE];
 
@@ -41,6 +49,9 @@ impl FileCaps {
         Self::extract_attr_or_error(&data, ret)
     }
 
+    /// Get the file capabilities attached to the open file identified by the file descriptor `fd`.
+    ///
+    /// See [`get_for_file()`](#method.get_for_file) for more information.
     pub fn get_for_fd(fd: RawFd) -> io::Result<Option<Self>> {
         let mut data = [0; crate::constants::XATTR_CAPS_MAX_SIZE];
 
@@ -70,6 +81,14 @@ impl FileCaps {
         }
     }
 
+    /// From the raw data from the `security.capability` extended attribute of a file, construct a
+    /// new `FileCaps` object representing the same data.
+    ///
+    /// Most users should call [`get_for_file()`] or [`get_for_fd()`]; those methods call this
+    /// method internally.
+    ///
+    /// [`get_for_file()`]: #method.get_for_file
+    /// [`get_for_fd()`]: #method.get_for_fd
     pub fn unpack_attrs(attrs: &[u8]) -> io::Result<Self> {
         let len = attrs.len();
 

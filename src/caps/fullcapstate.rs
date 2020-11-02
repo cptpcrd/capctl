@@ -4,6 +4,8 @@ use std::io::prelude::*;
 
 use super::{ambient, bounding, CapSet, CapState};
 
+/// Represents the "full" capability state of a thread (i.e. the contents of all 5 capability
+/// sets).
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct FullCapState {
     pub permitted: CapSet,
@@ -14,6 +16,9 @@ pub struct FullCapState {
 }
 
 impl FullCapState {
+    /// Get the full capability state of the current thread.
+    ///
+    /// This is equivalent to `FullCapState::get_for_pid(0)`. However,
     pub fn get_current() -> io::Result<Self> {
         let state = CapState::get_current()?;
 
@@ -26,6 +31,10 @@ impl FullCapState {
         })
     }
 
+    /// Get the full capability state of the process (or thread) with the given PID (or TID) by
+    /// examining special files in `/proc`.
+    ///
+    /// If `pid` is 0, this method gets the capability state of the current thread.
     pub fn get_for_pid(mut pid: libc::pid_t) -> io::Result<Self> {
         match pid.cmp(&0) {
             std::cmp::Ordering::Less => return Err(io::Error::from_raw_os_error(libc::EINVAL)),

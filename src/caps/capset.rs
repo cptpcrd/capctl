@@ -4,47 +4,61 @@ use std::ops::{BitAnd, BitOr, BitXor, Not, Sub};
 
 use super::{Cap, CAP_BITMASK, CAP_MAX};
 
+/// Represents a set of capabilities.
+///
+/// Internally, this stores the set of capabilities as a bitmask, which is much more efficient than
+/// a `HashSet<Cap>`.
 #[derive(Copy, Clone, Eq, Hash, PartialEq)]
 pub struct CapSet {
     pub(super) bits: u64,
 }
 
 impl CapSet {
+    /// Create an empty capability set.
     #[inline]
     pub const fn empty() -> Self {
         Self { bits: 0 }
     }
 
+    /// Clear all capabilities from this set.
+    ///
+    /// After this call, `set.is_empty()` will return `true`.
     #[inline]
     pub fn clear(&mut self) {
         self.bits = 0;
     }
 
+    /// Check if this capability set is empty.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.bits == 0
     }
 
+    /// Returns the number of capabilities in this capability set.
     #[inline]
     pub fn size(&self) -> usize {
         self.bits.count_ones() as usize
     }
 
+    /// Checks if a given capability is present in this set.
     #[inline]
     pub fn has(&self, cap: Cap) -> bool {
         self.bits & cap.to_single_bitfield() != 0
     }
 
+    /// Adds the given capability to this set.
     #[inline]
     pub fn add(&mut self, cap: Cap) {
         self.bits |= cap.to_single_bitfield();
     }
 
+    /// Removes the given capability from this set.
     #[inline]
     pub fn drop(&mut self, cap: Cap) {
         self.bits &= !cap.to_single_bitfield();
     }
 
+    /// If `val` is `true` the given capability is added; otherwise it is removed.
     pub fn set_state(&mut self, cap: Cap, val: bool) {
         if val {
             self.add(cap);
@@ -53,23 +67,28 @@ impl CapSet {
         }
     }
 
+    /// Adds all of the capabilities yielded by the given iterator to this set.
     pub fn add_all<T: IntoIterator<Item = Cap>>(&mut self, t: T) {
         for cap in t.into_iter() {
             self.add(cap);
         }
     }
 
+    /// Removes all of the capabilities yielded by the given iterator from this set.
     pub fn drop_all<T: IntoIterator<Item = Cap>>(&mut self, t: T) {
         for cap in t.into_iter() {
             self.drop(cap);
         }
     }
 
+    /// Returns an iterator over all of the capabilities in this set.
     #[inline]
     pub fn iter(&self) -> CapSetIterator {
         self.into_iter()
     }
 
+    /// Returns the union of this set and another capability set (i.e. all the capabilities that
+    /// are in either set).
     #[inline]
     pub const fn union(&self, other: Self) -> Self {
         Self {
@@ -77,6 +96,8 @@ impl CapSet {
         }
     }
 
+    /// Returns the intersection of this set and another capability set (i.e. all the capabilities
+    /// that are in both sets).
     #[inline]
     pub const fn intersection(&self, other: Self) -> Self {
         Self {
@@ -84,6 +105,7 @@ impl CapSet {
         }
     }
 
+    /// Returns the union
     #[doc(hidden)]
     #[inline]
     pub fn from_bitmask_truncate(bitmask: u64) -> Self {
@@ -208,6 +230,11 @@ macro_rules! capset {
     };
 }
 
+/// An iterator over all the capabilities in a `CapSet`.
+///
+/// This is constructed by [`CapSet::iter()`].
+///
+/// [`CapSet::iter()`]: ./struct.CapSet.html#method.iter
 #[derive(Clone)]
 pub struct CapSetIterator {
     set: CapSet,

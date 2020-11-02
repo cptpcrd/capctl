@@ -2,6 +2,7 @@ use std::io;
 
 use super::{Cap, CapSet};
 
+/// Raise the given capability in the current thread's ambient capability set.
 #[inline]
 pub fn raise(cap: Cap) -> io::Result<()> {
     unsafe {
@@ -17,6 +18,7 @@ pub fn raise(cap: Cap) -> io::Result<()> {
     Ok(())
 }
 
+/// Lower the given capability in the current thread's ambient capability set.
 #[inline]
 pub fn lower(cap: Cap) -> io::Result<()> {
     unsafe {
@@ -32,6 +34,10 @@ pub fn lower(cap: Cap) -> io::Result<()> {
     Ok(())
 }
 
+/// Check whether the given capability is raised in the current thread's ambient capability set.
+///
+/// This returns `Some(true)` if the given capability is raised, `Some(false)` if it is lowered,
+/// and `None` if it is not supported.
 #[inline]
 pub fn is_set(cap: Cap) -> Option<bool> {
     match unsafe {
@@ -48,6 +54,7 @@ pub fn is_set(cap: Cap) -> Option<bool> {
     }
 }
 
+/// Clear current thread's ambient capability set.
 #[inline]
 pub fn clear() -> io::Result<()> {
     unsafe {
@@ -63,11 +70,14 @@ pub fn clear() -> io::Result<()> {
     Ok(())
 }
 
+/// Check whether ambient capabilities are supported on the running kernel.
 #[inline]
 pub fn is_supported() -> bool {
     is_set(Cap::CHOWN).is_some()
 }
 
+/// "Probes" the current thread's ambient capability set and returns a `CapSet` representing all
+/// the capabilities that are currently raised.
 pub fn probe() -> Option<CapSet> {
     let mut set = CapSet::empty();
 
