@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use super::{ambient, bounding, CapSet, CapState};
 
 /// Represents the "full" capability state of a thread (i.e. the contents of all 5 capability
-/// sets).
+/// sets and some additional information).
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub struct FullCapState {
@@ -14,6 +14,7 @@ pub struct FullCapState {
     pub inheritable: CapSet,
     pub ambient: CapSet,
     pub bounding: CapSet,
+    pub no_new_privs: bool,
 }
 
 impl FullCapState {
@@ -25,6 +26,7 @@ impl FullCapState {
             inheritable: CapSet::empty(),
             ambient: CapSet::empty(),
             bounding: CapSet::empty(),
+            no_new_privs: false,
         }
     }
 
@@ -40,6 +42,7 @@ impl FullCapState {
             inheritable: state.inheritable,
             ambient: ambient::probe().unwrap_or_default(),
             bounding: bounding::probe(),
+            no_new_privs: crate::prctl::get_no_new_privs()?,
         })
     }
 
@@ -68,13 +71,7 @@ impl FullCapState {
 
         let mut line = String::new();
 
-        let mut res = Self {
-            permitted: CapSet::empty(),
-            effective: CapSet::empty(),
-            inheritable: CapSet::empty(),
-            ambient: CapSet::empty(),
-            bounding: CapSet::empty(),
-        };
+        let mut res = Self::empty();
 
         while reader.read_line(&mut line)? > 0 {
             if line.ends_with('\n') {
@@ -82,22 +79,29 @@ impl FullCapState {
             }
 
             if let Some(i) = line.find(":\t") {
+                let value = &line[i + 2..];
+
                 let set = match &line[..i] {
-                    "CapPrm" => &mut res.permitted,
-                    "CapEff" => &mut res.effective,
-                    "CapInh" => &mut res.inheritable,
-                    "CapBnd" => &mut res.bounding,
-                    "CapAmb" => &mut res.ambient,
-                    _ => {
-                        line.clear();
-                        continue;
+                    "CapPrm" => Some(&mut res.permitted),
+                    "CapEff" => Some(&mut res.effective),
+                    "CapInh" => Some(&mut res.inheritable),
+                    "CapBnd" => Some(&mut res.bounding),
+                    "CapAmb" => Some(&mut res.ambient),
+                    "NoNewPrivs" => {
+                        res.no_new_privs = value == "1";
+                        None
                     }
+                    _ => None,
                 };
 
-                if line.len() > i + 2 {
-                    match u64::from_str_radix(&line[i + 2..], 16) {
-                        Ok(bitmask) => *set = CapSet::from_bitmask_truncate(bitmask),
-                        Err(e) => return Err(io::Error::new(io::ErrorKind::Other, e.to_string())),
+                if let Some(set) = set {
+                    if line.len() > i + 2 {
+                        match u64::from_str_radix(value, 16) {
+                            Ok(bitmask) => *set = CapSet::from_bitmask_truncate(bitmask),
+                            Err(e) => {
+                                return Err(io::Error::new(io::ErrorKind::Other, e.to_string()))
+                            }
+                        }
                     }
                 }
             }
