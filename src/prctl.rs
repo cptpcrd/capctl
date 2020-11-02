@@ -181,9 +181,9 @@ mod tests {
 
     #[test]
     fn test_nnp() {
-        set_no_new_privs();
+        set_no_new_privs().unwrap();
         assert!(get_no_new_privs().unwrap());
-        set_no_new_privs();
+        set_no_new_privs().unwrap();
         assert!(get_no_new_privs().unwrap());
     }
 
