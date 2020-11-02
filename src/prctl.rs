@@ -4,17 +4,17 @@ use std::os::unix::prelude::*;
 
 pub fn set_name<N: AsRef<OsStr>>(name: N) -> io::Result<()> {
     let name = name.as_ref().as_bytes();
-    let mut ptr: *const u8 = name.as_ptr();
-
     if name.contains(&0) {
         return Err(io::Error::from_raw_os_error(libc::EINVAL));
     }
 
     let mut buf = [0; 16];
-    if name.len() < 16 {
+    let ptr = if name.len() < 16 {
         buf[..name.len()].copy_from_slice(name);
-        ptr = buf.as_ptr();
-    }
+        buf.as_ptr()
+    } else {
+        name.as_ptr()
+    };
 
     unsafe { crate::raw_prctl(libc::PR_SET_NAME, ptr as libc::c_ulong, 0, 0, 0) }?;
 
