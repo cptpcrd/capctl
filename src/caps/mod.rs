@@ -8,7 +8,7 @@ mod util;
 
 pub mod ambient;
 pub mod bounding;
-pub use capset::CapSet;
+pub use capset::{CapSet, CapSetIterator};
 pub use capstate::CapState;
 pub use file::FileCaps;
 pub use fullcapstate::FullCapState;
