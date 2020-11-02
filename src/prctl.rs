@@ -21,7 +21,7 @@ pub fn get_name() -> io::Result<OsString> {
     let mut name_vec = vec![0; 16];
     unsafe {
         crate::raw_prctl(
-            libc::PR_SET_NAME,
+            libc::PR_GET_NAME,
             name_vec.as_ptr() as libc::c_ulong,
             0,
             0,
