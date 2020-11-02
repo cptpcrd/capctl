@@ -3,6 +3,7 @@ use std::fmt;
 mod capset;
 mod capstate;
 mod file;
+mod fullcapstate;
 mod util;
 
 pub mod ambient;
@@ -10,6 +11,7 @@ pub mod bounding;
 pub use capset::CapSet;
 pub use capstate::CapState;
 pub use file::FileCaps;
+pub use fullcapstate::FullCapState;
 
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 #[repr(u8)]
