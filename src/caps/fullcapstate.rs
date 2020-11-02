@@ -7,6 +7,7 @@ use super::{ambient, bounding, CapSet, CapState};
 /// Represents the "full" capability state of a thread (i.e. the contents of all 5 capability
 /// sets).
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
 pub struct FullCapState {
     pub permitted: CapSet,
     pub effective: CapSet,
@@ -16,6 +17,17 @@ pub struct FullCapState {
 }
 
 impl FullCapState {
+    /// Construct an empty `FullCapState` object.
+    pub fn empty() -> Self {
+        Self {
+            permitted: CapSet::empty(),
+            effective: CapSet::empty(),
+            inheritable: CapSet::empty(),
+            ambient: CapSet::empty(),
+            bounding: CapSet::empty(),
+        }
+    }
+
     /// Get the full capability state of the current thread.
     ///
     /// This is equivalent to `FullCapState::get_for_pid(0)`. However,

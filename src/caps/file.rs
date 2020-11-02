@@ -8,6 +8,7 @@ use super::CapSet;
 
 /// Represents the capabilities attached to a file.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
 pub struct FileCaps {
     pub effective: bool,
     pub permitted: CapSet,
