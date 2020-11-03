@@ -2,7 +2,7 @@
 
 A pure-Rust interface to `prctl()` and Linux capabilities.
 
-# Why not [`caps`](https://crates.io/crates/caps)?
+### Why not [`caps`](https://crates.io/crates/caps)?
 
 **TL;DR**: In the opinion of `capctl`'s author, `caps` adds too much abstraction and overhead.
 
@@ -12,7 +12,7 @@ A pure-Rust interface to `prctl()` and Linux capabilities.
 
 2. `caps` uses `HashSet`s to store sets of capabilities, which is wasteful. `capctl` has a custom `CapSet` struct that stores a set of capabilities much more efficiently. (`CapSet` also has methods specially designed to work with capabilities, instead of just being a generalized set implementation.)
 
-# Why not [`prctl`](https://crates.io/crates/prctl)?
+### Why not [`prctl`](https://crates.io/crates/prctl)?
 
 **TL;DR**: `prctl` is a very low-level wrapper crate, and some of its "safe" code *should* be `unsafe`.
 
