@@ -126,7 +126,8 @@ mod tests {
 
         assert_eq!(
             FullCapState::get_current().unwrap(),
-            FullCapState::get_for_pid(std::process::id() as libc::pid_t).unwrap(),
+            FullCapState::get_for_pid(unsafe { libc::syscall(libc::SYS_gettid) } as libc::pid_t)
+                .unwrap(),
         );
     }
 
