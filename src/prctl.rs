@@ -19,10 +19,11 @@ fn raw_set_name(name: &[u8]) -> io::Result<()> {
     }
 
     let mut buf = [0; 16];
-    let ptr = if name.len() < 16 {
+    let ptr = if name.len() < buf.len() {
         buf[..name.len()].copy_from_slice(name);
         buf.as_ptr()
     } else {
+        // The kernel only looks at the first 16 bytes, so we can use the original string
         name.as_ptr()
     };
 
