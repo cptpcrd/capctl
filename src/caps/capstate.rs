@@ -13,6 +13,7 @@ pub struct CapState {
 
 impl CapState {
     /// Construct an empty `CapState` object.
+    #[inline]
     pub fn empty() -> Self {
         Self {
             effective: CapSet::empty(),

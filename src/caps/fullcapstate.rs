@@ -19,6 +19,7 @@ pub struct FullCapState {
 
 impl FullCapState {
     /// Construct an empty `FullCapState` object.
+    #[inline]
     pub fn empty() -> Self {
         Self {
             permitted: CapSet::empty(),

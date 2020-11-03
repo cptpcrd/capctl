@@ -28,6 +28,7 @@ pub struct FileCaps {
 
 impl FileCaps {
     /// Construct an empty `FileCaps` object.
+    #[inline]
     pub fn empty() -> Self {
         Self {
             effective: false,
