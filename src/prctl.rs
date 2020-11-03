@@ -2,6 +2,12 @@ use std::ffi::{OsStr, OsString};
 use std::io;
 use std::os::unix::prelude::*;
 
+/// Set the name of the current thread.
+///
+/// If the given name is longer than 15 bytes, it will be truncated to the first 15 bytes.
+///
+/// (Note: Other documentation regarding Linux capabilities says that the maximum length is 16
+/// bytes; that value includes the terminating NUL byte at the end of C strings.)
 pub fn set_name<N: AsRef<OsStr>>(name: N) -> io::Result<()> {
     let name = name.as_ref().as_bytes();
     if name.contains(&0) {
@@ -21,6 +27,7 @@ pub fn set_name<N: AsRef<OsStr>>(name: N) -> io::Result<()> {
     Ok(())
 }
 
+/// Get the name of the current thread.
 pub fn get_name() -> io::Result<OsString> {
     let mut name_vec = vec![0; 16];
     unsafe {
@@ -38,6 +45,9 @@ pub fn get_name() -> io::Result<OsString> {
     Ok(OsString::from_vec(name_vec))
 }
 
+/// Get the no-new-privileges flag of the current thread.
+///
+/// See [`set_no_new_privs()`](./fn.set_no_new_privs.html) for more details.
 #[inline]
 pub fn get_no_new_privs() -> io::Result<bool> {
     let res = unsafe { crate::raw_prctl(libc::PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0) }?;
@@ -45,6 +55,12 @@ pub fn get_no_new_privs() -> io::Result<bool> {
     Ok(res != 0)
 }
 
+/// Enable the no-new-privileges flag on the current thread.
+///
+/// If this flag is enabled, `execve()` will no longer honor set-user-ID/set-group-ID bits and file
+/// capabilities on executables. See prctl(2) for more details.
+///
+/// Once this is enabled, it cannot be unset.
 #[inline]
 pub fn set_no_new_privs() -> io::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) }?;
@@ -52,6 +68,9 @@ pub fn set_no_new_privs() -> io::Result<()> {
     Ok(())
 }
 
+/// Get the "keep capabilities" flag of the current thread.
+///
+/// See [`set_keepcaps()`](./fn.set_keepcaps.html) for more details.
 #[inline]
 pub fn get_keepcaps() -> io::Result<bool> {
     let res = unsafe { crate::raw_prctl(libc::PR_GET_KEEPCAPS, 0, 0, 0, 0) }?;
@@ -59,6 +78,12 @@ pub fn get_keepcaps() -> io::Result<bool> {
     Ok(res != 0)
 }
 
+/// Set the "keep capabilities" flag of the current thread.
+///
+/// Setting this flag allows a thread to retain its permitted capabilities when switching all its
+/// UIDs to non-zero values (the effective capability set is still emptied).
+///
+/// This flag is always cleared on an `execve()`; see capabilities(7) for more details.
 #[inline]
 pub fn set_keepcaps(keep: bool) -> io::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_SET_KEEPCAPS, keep as libc::c_ulong, 0, 0, 0) }?;
@@ -66,6 +91,9 @@ pub fn set_keepcaps(keep: bool) -> io::Result<()> {
     Ok(())
 }
 
+/// Get the "dumpable" flag for the current process.
+///
+/// See [`set_dumpable()`](./fn.set_dumpable.html) for more details.
 #[inline]
 pub fn get_dumpable() -> io::Result<bool> {
     let res = unsafe { crate::raw_prctl(libc::PR_GET_DUMPABLE, 0, 0, 0, 0) }?;
@@ -73,6 +101,11 @@ pub fn get_dumpable() -> io::Result<bool> {
     Ok(res != 0)
 }
 
+/// Set the "dumpable" flag for the current process.
+///
+/// This controls whether a core dump will be produced for the process if it receives a signal that
+/// would make it perform a core dump. It also restricts which processes can be attached with
+/// `ptrace()`.
 #[inline]
 pub fn set_dumpable(dumpable: bool) -> io::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_SET_DUMPABLE, dumpable as libc::c_ulong, 0, 0, 0) }?;
@@ -80,6 +113,13 @@ pub fn set_dumpable(dumpable: bool) -> io::Result<()> {
     Ok(())
 }
 
+/// Set the "child subreaper" flag for the current process.
+///
+/// If a process dies, its children will be reparented to the nearest surviving ancestor subreaper,
+/// or to PID 1 if it has no ancestor subreapers.
+///
+/// This is useful for process managers that need to be informed when any of their descendants
+/// (possibly processes that used the double-`fork()` trick to become daemons) die.
 #[inline]
 pub fn set_subreaper(flag: bool) -> io::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_SET_CHILD_SUBREAPER, flag as libc::c_ulong, 0, 0, 0) }?;
@@ -87,6 +127,9 @@ pub fn set_subreaper(flag: bool) -> io::Result<()> {
     Ok(())
 }
 
+/// Get the "child subreaper" flag for the current process.
+///
+/// See [`set_subreaper()`](./fn.set_subreaper.html) for more detailss.
 #[inline]
 pub fn get_subreaper() -> io::Result<bool> {
     let mut res = 0;
@@ -104,6 +147,12 @@ pub fn get_subreaper() -> io::Result<bool> {
     Ok(res != 0)
 }
 
+/// Set the parent-death signal of the current process.
+///
+/// The parent-death signal is the signal that this process will receive when its parent dies. It
+/// is cleared when executing a binary that is set-UID, set-GID, or has file capabilities.
+///
+/// Specifying `None` is equivalent to specifying `Some(0)`; both clear the parent-death signal.
 #[inline]
 pub fn set_pdeathsig(sig: Option<libc::c_int>) -> io::Result<()> {
     unsafe {
@@ -119,6 +168,10 @@ pub fn set_pdeathsig(sig: Option<libc::c_int>) -> io::Result<()> {
     Ok(())
 }
 
+/// Get the parent-death signal of the current process.
+///
+/// This returns `Ok(None)` if the process's parent-death signal is cleared, and `Ok(Some(sig))`
+/// otherwise.
 #[inline]
 pub fn get_pdeathsig() -> io::Result<Option<libc::c_int>> {
     let mut sig = 0;
@@ -138,26 +191,67 @@ pub fn get_pdeathsig() -> io::Result<Option<libc::c_int>> {
 
 bitflags::bitflags! {
     pub struct Secbits: libc::c_ulong {
+        /// If this flag is set, the kernel does not grant capabilities when a SUID-root program is
+        /// executed, or when a process with an effective/real UID of 0 calls `exec()`.
         const NOROOT = 0x1;
+
+        /// Locks the `NOROOT` flag so it cannot be changed.
         const NOROOT_LOCKED = 0x2;
 
+        /// If this flag is set, the kernel will not adjust the current thread's
+        /// permitted/effective/inheritable capability sets when its effective and filesystem UIDs
+        /// are changed between zero and nonzero values.
+        ///
         const NO_SETUID_FIXUP = 0x4;
+        /// Locks the `NO_SETUID_FIXUP` flag so it cannot be changed.
         const NO_SETUID_FIXUP_LOCKED = 0x8;
 
+        /// If this flag is set, the kernel will not empty the current thread's permitted
+        /// capability set when all of its UIDs are switched to nonzero values. (However, the
+        /// effective capability set will still be cleared.)
+        ///
+        /// This flag is cleared across `execve()` calls.
+        ///
+        /// Note: [`get_keepcaps()`] and [`set_keepcaps()`] provide the same functionality as this
+        /// flag (setting the flag via one method will change its value as perceived by the other,
+        /// and vice versa). However, [`set_keepcaps()`] does not require CAP_SETPCAP; changing the
+        /// securebits does. As a result, if you only need to manipulate the `KEEP_CAPS` flag, you
+        /// may wish to instead use [`get_keepcaps()`] and [`set_keepcaps()`].
+        ///
+        /// [`get_keepcaps()`]: ./fn.get_keepcaps.html
+        /// [`set_keepcaps()`]: ./fn.set_keepcaps.html
         const KEEP_CAPS = 0x10;
+
+        /// Locks the `KEEP_CAPS` flag so it cannot be changed.
+        ///
+        /// Note: The `KEEP_CAPS` flag is always cleared across `execve()`, even if it is "locked"
+        /// using this flag. As a result, this flag is mainly useful for locking the `KEEP_CAPS` in
+        /// the "off" setting.
         const KEEP_CAPS_LOCKED = 0x20;
 
+        /// Disallows raising ambient capabilities.
         const NO_CAP_AMBIENT_RAISE = 0x40;
+
+        /// Locks the `NO_CAP_AMBIENT_RAISE_LOCKED` flag so it cannot be changed.
         const NO_CAP_AMBIENT_RAISE_LOCKED = 0x80;
     }
 }
 
+/// Get the "securebits" flags of the current thread.
+///
+/// See [`set_securebits()`](./fn.set_securebits.html) for more details.
 pub fn get_securebits() -> io::Result<Secbits> {
     let f = unsafe { crate::raw_prctl(libc::PR_GET_SECUREBITS, 0, 0, 0, 0) }?;
 
     Ok(Secbits::from_bits_truncate(f as libc::c_ulong))
 }
 
+/// Set the "securebits" flags of the current thread.
+///
+/// The secure bits control various aspects of the handling of capabilities for UID 0. See
+/// [`Secbits`](struct.Secbits.html) and capabilities(7) for more details.
+///
+/// Note: Modifying the securebits with this function requires the CAP_SETPCAP capability.
 pub fn set_securebits(flags: Secbits) -> io::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_SET_SECUREBITS, flags.bits(), 0, 0, 0) }?;
 
