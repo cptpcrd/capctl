@@ -171,6 +171,8 @@ impl Cap {
             } else {
                 max = mid - 1;
             }
+
+            debug_assert!(max >= min);
         }
 
         CapSet::from_bitmask_truncate((1 << (min + 1)) - 1)
@@ -235,11 +237,9 @@ impl Iterator for CapIter {
     fn next(&mut self) -> Option<Cap> {
         debug_assert!(self.i <= NUM_CAPS);
 
-        let res = Cap::from_u8(self.i);
-        if res.is_some() {
-            self.i += 1;
-        }
-        res
+        let cap = Cap::from_u8(self.i)?;
+        self.i += 1;
+        Some(cap)
     }
 
     fn nth(&mut self, n: usize) -> Option<Cap> {
