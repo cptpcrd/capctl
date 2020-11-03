@@ -40,18 +40,17 @@ pub fn lower(cap: Cap) -> io::Result<()> {
 /// and `None` if it is not supported.
 #[inline]
 pub fn is_set(cap: Cap) -> Option<bool> {
-    match unsafe {
-        crate::raw_prctl(
-            libc::PR_CAP_AMBIENT,
-            libc::PR_CAP_AMBIENT_IS_SET as libc::c_ulong,
-            cap as libc::c_ulong,
-            0,
-            0,
-        )
-    } {
-        Ok(x) => Some(x != 0),
-        Err(_) => None,
-    }
+    Some(
+        unsafe {
+            crate::raw_prctl_opt(
+                libc::PR_CAP_AMBIENT,
+                libc::PR_CAP_AMBIENT_IS_SET as libc::c_ulong,
+                cap as libc::c_ulong,
+                0,
+                0,
+            )?
+        } != 0,
+    )
 }
 
 /// Clear current thread's ambient capability set.
