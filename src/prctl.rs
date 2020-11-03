@@ -8,8 +8,12 @@ use std::os::unix::prelude::*;
 ///
 /// (Note: Other documentation regarding Linux capabilities says that the maximum length is 16
 /// bytes; that value includes the terminating NUL byte at the end of C strings.)
+#[inline]
 pub fn set_name<N: AsRef<OsStr>>(name: N) -> io::Result<()> {
-    let name = name.as_ref().as_bytes();
+    raw_set_name(name.as_ref().as_bytes())
+}
+
+fn raw_set_name(name: &[u8]) -> io::Result<()> {
     if name.contains(&0) {
         return Err(io::Error::from_raw_os_error(libc::EINVAL));
     }
