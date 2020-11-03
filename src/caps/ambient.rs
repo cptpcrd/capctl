@@ -53,7 +53,7 @@ pub fn is_set(cap: Cap) -> Option<bool> {
     )
 }
 
-/// Clear current thread's ambient capability set.
+/// Clear the current thread's ambient capability set.
 #[inline]
 pub fn clear() -> io::Result<()> {
     unsafe {
@@ -77,6 +77,8 @@ pub fn is_supported() -> bool {
 
 /// "Probes" the current thread's ambient capability set and returns a `CapSet` representing all
 /// the capabilities that are currently raised.
+///
+/// Returns `None` if ambient capabilities are not supported on the running kernel.
 pub fn probe() -> Option<CapSet> {
     let mut set = CapSet::empty();
 

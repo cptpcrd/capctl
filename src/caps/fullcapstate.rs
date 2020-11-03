@@ -32,7 +32,8 @@ impl FullCapState {
 
     /// Get the full capability state of the current thread.
     ///
-    /// This is equivalent to `FullCapState::get_for_pid(0)`. However,
+    /// This is equivalent to `FullCapState::get_for_pid(0)`. However, this method uses the kernel
+    /// APIs to retrieve information instead of examining files in `/proc`.
     pub fn get_current() -> io::Result<Self> {
         let state = CapState::get_current()?;
 
