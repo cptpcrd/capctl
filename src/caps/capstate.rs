@@ -12,6 +12,15 @@ pub struct CapState {
 }
 
 impl CapState {
+    /// Construct an empty `CapState` object.
+    pub fn empty() -> Self {
+        Self {
+            effective: CapSet::empty(),
+            permitted: CapSet::empty(),
+            inheritable: CapSet::empty(),
+        }
+    }
+
     /// Get the capability state of the current thread.
     ///
     /// This is equivalent to `CapState::get_for_pid(0)`.
