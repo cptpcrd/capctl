@@ -119,6 +119,7 @@ static CAPS_BY_NAME: [(&str, Cap); NUM_CAPS as usize] = [
 ];
 
 impl Cap {
+    /// Return an iterator over all of the capabilities enumerated by `Cap`.
     #[inline]
     pub fn iter() -> CapIter {
         CapIter { i: 0 }
@@ -179,6 +180,7 @@ impl Cap {
     }
 }
 
+/// Represents an error when parsing a `Cap` from a string.
 #[derive(Clone, Eq, PartialEq)]
 pub struct ParseCapError(());
 

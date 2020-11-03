@@ -10,9 +10,19 @@ use super::CapSet;
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub struct FileCaps {
+    /// The "effective" bit. If this is set on a file, then during an `execve()` the kernel will
+    /// raise all the capabilities from the file's `permitted` set in the process's new effective
+    /// capability set.
     pub effective: bool,
+    /// The permitted capability set. These capabilities are automatically added to the process's
+    /// new permitted capability set.
     pub permitted: CapSet,
+    /// The inheritable capability set. These capabilities are automatically added to the process's
+    /// new inheritable capability set.
     pub inheritable: CapSet,
+    /// The root user ID of the user namespace in which file capabilities were added to this file.
+    /// See capabilities(7) for more details. This is only set to a non-`None` value for version 3
+    /// file capabilities.
     pub rootid: Option<libc::uid_t>,
 }
 
