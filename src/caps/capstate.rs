@@ -99,6 +99,18 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_capstate_empty() {
+        assert_eq!(
+            CapState::empty(),
+            CapState {
+                effective: CapSet::empty(),
+                permitted: CapSet::empty(),
+                inheritable: CapSet::empty(),
+            }
+        );
+    }
+
+    #[test]
     fn test_capstate_getset_current() {
         let state = CapState::get_current().unwrap();
         assert_eq!(state, CapState::get_for_pid(0).unwrap());

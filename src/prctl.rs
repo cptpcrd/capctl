@@ -347,4 +347,33 @@ mod tests {
         set_name(&orig_name).unwrap();
         assert_eq!(get_name().unwrap(), orig_name);
     }
+
+    #[test]
+    fn test_securebits() {
+        if crate::caps::CapState::get_current()
+            .unwrap()
+            .effective
+            .has(crate::caps::Cap::SETPCAP)
+        {
+            let orig_secbits = get_securebits().unwrap();
+            let mut secbits = orig_secbits;
+
+            secbits.insert(Secbits::KEEP_CAPS);
+            set_securebits(secbits).unwrap();
+            assert!(get_keepcaps().unwrap());
+
+            secbits.remove(Secbits::KEEP_CAPS);
+            set_securebits(secbits).unwrap();
+            assert!(!get_keepcaps().unwrap());
+
+            set_securebits(orig_secbits).unwrap();
+        } else {
+            assert_eq!(
+                set_securebits(get_securebits().unwrap())
+                    .unwrap_err()
+                    .raw_os_error(),
+                Some(libc::EPERM)
+            );
+        }
+    }
 }
