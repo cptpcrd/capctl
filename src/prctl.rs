@@ -309,6 +309,11 @@ mod tests {
         set_pdeathsig(Some(libc::SIGCHLD)).unwrap();
         assert_eq!(get_pdeathsig().unwrap(), Some(libc::SIGCHLD));
 
+        assert_eq!(
+            set_pdeathsig(Some(-1)).unwrap_err().raw_os_error(),
+            Some(libc::EINVAL)
+        );
+
         set_pdeathsig(orig_pdeathsig).unwrap();
     }
 
