@@ -1,5 +1,10 @@
 # capctl
 
+[![crates.io](https://img.shields.io/crates/v/capctl.svg)](https://crates.io/crates/capctl)
+[![Docs](https://docs.rs/capctl/badge.svg)](https://docs.rs/capctl)
+[![GitHub Actions](https://github.com/cptpcrd/capctl/workflows/CI/badge.svg?branch=master&event=push)](https://github.com/cptpcrd/capctl/actions?query=workflow%3ACI+branch%3Amaster+event%3Apush)
+[![codecov](https://codecov.io/gh/cptpcrd/capctl/branch/master/graph/badge.svg)](https://codecov.io/gh/cptpcrd/capctl)
+
 A pure-Rust interface to `prctl()` and Linux capabilities.
 
 ### Why not [`caps`](https://crates.io/crates/caps)?
