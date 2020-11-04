@@ -56,7 +56,7 @@ impl FullCapState {
         match pid.cmp(&0) {
             std::cmp::Ordering::Less => return Err(io::Error::from_raw_os_error(libc::EINVAL)),
             std::cmp::Ordering::Equal => {
-                pid = unsafe { libc::syscall(libc::SYS_gettid) } as libc::pid_t
+                pid = unsafe { libc::syscall(libc::SYS_gettid) } as libc::pid_t;
             }
             std::cmp::Ordering::Greater => (),
         }
@@ -64,13 +64,12 @@ impl FullCapState {
         let f = match fs::File::open(format!("/proc/{}/status", pid)) {
             Ok(f) => f,
             Err(e) if e.raw_os_error() == Some(libc::ENOENT) => {
-                return Err(io::Error::from_raw_os_error(libc::ESRCH))
+                return Err(io::Error::from_raw_os_error(libc::ESRCH));
             }
             Err(e) => return Err(e),
         };
 
         let mut reader = io::BufReader::new(f);
-
         let mut line = String::new();
 
         let mut res = Self::empty();
@@ -101,7 +100,7 @@ impl FullCapState {
                         match u64::from_str_radix(value, 16) {
                             Ok(bitmask) => *set = CapSet::from_bitmask_truncate(bitmask),
                             Err(e) => {
-                                return Err(io::Error::new(io::ErrorKind::Other, e.to_string()))
+                                return Err(io::Error::new(io::ErrorKind::Other, e.to_string()));
                             }
                         }
                     }
