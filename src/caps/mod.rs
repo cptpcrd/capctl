@@ -4,6 +4,7 @@ mod capset;
 mod capstate;
 mod file;
 mod fullcapstate;
+mod helpers;
 mod util;
 
 pub mod ambient;
@@ -12,6 +13,7 @@ pub use capset::{CapSet, CapSetIterator};
 pub use capstate::CapState;
 pub use file::FileCaps;
 pub use fullcapstate::FullCapState;
+pub use helpers::cap_set_ids;
 
 /// An enum representing all of the possible Linux capabilities.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
