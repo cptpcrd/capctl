@@ -2,7 +2,7 @@ use std::fmt;
 use std::iter::FromIterator;
 use std::ops::{BitAnd, BitOr, BitXor, Not, Sub};
 
-use super::{Cap, CAP_BITMASK, CAP_MAX};
+use super::{Cap, CAP_BITMASK, NUM_CAPS};
 
 /// Represents a set of capabilities.
 ///
@@ -270,11 +270,10 @@ impl Iterator for CapSetIterator {
 impl ExactSizeIterator for CapSetIterator {
     #[inline]
     fn len(&self) -> usize {
-        if self.i <= CAP_MAX {
-            (self.set.bits >> self.i).count_ones() as usize
-        } else {
-            0
-        }
+        // It should be literally impossible for i to be out of this range
+        debug_assert!(self.i <= NUM_CAPS);
+
+        (self.set.bits >> self.i).count_ones() as usize
     }
 }
 
