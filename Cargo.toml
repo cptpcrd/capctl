@@ -3,6 +3,7 @@ name = "capctl"
 version = "0.1.0"
 edition = "2018"
 
+description = "A pure-Rust interface to prctl() and Linux capabilities."
 readme = "README.md"
 authors = ["cptpcrd"]
 license = "MIT"
