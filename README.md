@@ -10,7 +10,11 @@ A pure-Rust interface to `prctl()` and Linux capabilities.
 
    This is certainly more convenient to use. However, a) it minimizes the differences between the capabilities sets (something that is fundamental and must be understood to use capabilities properly), b) it allows users to write code that attempts to perform operations that are actually impossible (i.e. adding capabilities to the bounding capability set), and c) it can result in excessive syscalls (because operations that the kernel APIs allow to be performed together instead must done separately).
 
-2. `caps` uses `HashSet`s to store sets of capabilities, which is wasteful. `capctl` has a custom `CapSet` struct that stores a set of capabilities much more efficiently. (`CapSet` also has methods specially designed to work with capabilities, instead of just being a generalized set implementation.)
+   Note: The author of `capctl` is not *completely* opposed to adding these kinds of interfaces, provided that lower-level APIs are also provided to allow users finer control. `caps`, however, does not do this.
+
+2. `capctl` uses more efficient representations internally.
+
+   For example, `caps` uses `HashSet`s to store sets of capabilities, which is wasteful. `capctl`, meanwhile, has a custom `CapSet` struct that stores a set of capabilities much more efficiently. (`CapSet` also has methods specially designed to work with capabilities, instead of just being a generalized set implementation.)
 
 ### Why not [`prctl`](https://crates.io/crates/prctl)?
 
