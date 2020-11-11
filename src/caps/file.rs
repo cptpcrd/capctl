@@ -188,6 +188,17 @@ mod tests {
 
         let f = std::fs::File::open(&current_exe).unwrap();
         FileCaps::get_for_fd(f.as_raw_fd()).unwrap();
+
+        assert_eq!(
+            FileCaps::get_for_file(current_exe.join("sub"))
+                .unwrap_err()
+                .raw_os_error(),
+            Some(libc::ENOTDIR)
+        );
+        assert_eq!(
+            FileCaps::get_for_fd(-1).unwrap_err().raw_os_error(),
+            Some(libc::EBADF)
+        );
     }
 
     #[test]
