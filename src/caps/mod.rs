@@ -5,7 +5,6 @@ mod capstate;
 mod file;
 mod fullcapstate;
 mod helpers;
-mod util;
 
 pub mod ambient;
 pub mod bounding;

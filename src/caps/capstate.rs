@@ -1,6 +1,5 @@
 use std::io;
 
-use super::util::combine_raw_u32s;
 use super::CapSet;
 
 /// Represents the permitted, effective, and inheritable capability sets of a thread.
@@ -48,18 +47,9 @@ impl CapState {
         }
 
         Ok(Self {
-            effective: CapSet::from_bitmask_truncate(combine_raw_u32s(
-                raw_dat[0].effective,
-                raw_dat[1].effective,
-            )),
-            permitted: CapSet::from_bitmask_truncate(combine_raw_u32s(
-                raw_dat[0].permitted,
-                raw_dat[1].permitted,
-            )),
-            inheritable: CapSet::from_bitmask_truncate(combine_raw_u32s(
-                raw_dat[0].inheritable,
-                raw_dat[1].inheritable,
-            )),
+            effective: CapSet::from_bitmasks_u32(raw_dat[0].effective, raw_dat[1].effective),
+            permitted: CapSet::from_bitmasks_u32(raw_dat[0].permitted, raw_dat[1].permitted),
+            inheritable: CapSet::from_bitmasks_u32(raw_dat[0].inheritable, raw_dat[1].inheritable),
         })
     }
 

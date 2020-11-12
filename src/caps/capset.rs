@@ -112,6 +112,11 @@ impl CapSet {
             bits: bitmask & CAP_BITMASK,
         }
     }
+
+    #[inline]
+    pub(crate) fn from_bitmasks_u32(lower: u32, upper: u32) -> Self {
+        Self::from_bitmask_truncate(((upper as u64) << 32) | (lower as u64))
+    }
 }
 
 impl Default for CapSet {

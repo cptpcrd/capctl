@@ -3,7 +3,6 @@ use std::ffi::{CString, OsStr};
 use std::io;
 use std::os::unix::prelude::*;
 
-use super::util::combine_raw_u32s;
 use super::CapSet;
 
 /// Represents the capabilities attached to a file.
@@ -119,14 +118,14 @@ impl FileCaps {
         {
             Ok(FileCaps {
                 effective,
-                permitted: CapSet::from_bitmask_truncate(combine_raw_u32s(
+                permitted: CapSet::from_bitmasks_u32(
                     u32::from_le_bytes(attrs[4..8].try_into().unwrap()),
                     u32::from_le_bytes(attrs[12..16].try_into().unwrap()),
-                )),
-                inheritable: CapSet::from_bitmask_truncate(combine_raw_u32s(
+                ),
+                inheritable: CapSet::from_bitmasks_u32(
                     u32::from_le_bytes(attrs[8..12].try_into().unwrap()),
                     u32::from_le_bytes(attrs[16..20].try_into().unwrap()),
-                )),
+                ),
                 rootid: None,
             })
         } else if version == crate::constants::VFS_CAP_REVISION_3
@@ -134,14 +133,14 @@ impl FileCaps {
         {
             Ok(FileCaps {
                 effective,
-                permitted: CapSet::from_bitmask_truncate(combine_raw_u32s(
+                permitted: CapSet::from_bitmasks_u32(
                     u32::from_le_bytes(attrs[4..8].try_into().unwrap()),
                     u32::from_le_bytes(attrs[12..16].try_into().unwrap()),
-                )),
-                inheritable: CapSet::from_bitmask_truncate(combine_raw_u32s(
+                ),
+                inheritable: CapSet::from_bitmasks_u32(
                     u32::from_le_bytes(attrs[8..12].try_into().unwrap()),
                     u32::from_le_bytes(attrs[16..20].try_into().unwrap()),
-                )),
+                ),
                 rootid: Some(u32::from_le_bytes(attrs[20..24].try_into().unwrap())),
             })
         } else if version == crate::constants::VFS_CAP_REVISION_1
