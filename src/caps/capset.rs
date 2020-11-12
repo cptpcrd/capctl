@@ -220,10 +220,10 @@ impl fmt::Debug for CapSet {
 #[macro_export]
 macro_rules! capset {
     () => {
-        CapSet::empty()
+        $crate::caps::CapSet::empty()
     };
     ($cap:expr$(, $caps:expr)*) => {
-        CapSet::from_bitmask_truncate((1 << ($cap as u8)) $(| (1 << ($caps as u8)))*)
+        $crate::caps::CapSet::from_bitmask_truncate((1 << ($cap as u8)) $(| (1 << ($caps as u8)))*)
     };
     ($cap:expr, $($caps:expr,)*) => {
         capset!($cap$(, $caps)*)
