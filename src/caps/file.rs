@@ -160,6 +160,148 @@ impl FileCaps {
             Err(io::Error::from_raw_os_error(libc::EINVAL))
         }
     }
+
+    /// Set the file capabilities attached to the file identified by `path` to the state
+    /// represented by this object.
+    #[inline]
+    pub fn set_for_file<P: AsRef<OsStr>>(&self, path: P) -> io::Result<()> {
+        let path = CString::new(path.as_ref().as_bytes())?;
+
+        let mut buf = [0u8; crate::constants::XATTR_CAPS_MAX_SIZE];
+        let len = self.pack_into(&mut buf);
+
+        if unsafe {
+            libc::setxattr(
+                path.as_ptr() as *const libc::c_char,
+                crate::constants::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
+                buf.as_ptr() as *const libc::c_void,
+                len,
+                0,
+            )
+        } < 0
+        {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Set the file capabilities attached to the open file identified by the file descriptor `fd`
+    /// to the state represented by this object.
+    #[inline]
+    pub fn set_for_fd(&self, fd: RawFd) -> io::Result<()> {
+        let mut buf = [0u8; crate::constants::XATTR_CAPS_MAX_SIZE];
+        let len = self.pack_into(&mut buf);
+
+        if unsafe {
+            libc::fsetxattr(
+                fd,
+                crate::constants::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
+                buf.as_ptr() as *const libc::c_void,
+                len,
+                0,
+            )
+        } < 0
+        {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn pack_into(&self, buf: &mut [u8]) -> usize {
+        let mut magic = if self.rootid.is_some() {
+            crate::constants::VFS_CAP_REVISION_3
+        } else {
+            crate::constants::VFS_CAP_REVISION_2
+        };
+
+        if self.effective {
+            magic |= crate::constants::VFS_CAP_FLAGS_EFFECTIVE;
+        }
+
+        let mut len = 20;
+
+        buf[..4].copy_from_slice(&magic.to_le_bytes());
+        buf[4..8].copy_from_slice(&(self.permitted.bits as u32).to_le_bytes());
+        buf[8..12].copy_from_slice(&(self.inheritable.bits as u32).to_le_bytes());
+        buf[12..16].copy_from_slice(&((self.permitted.bits >> 32) as u32).to_le_bytes());
+        buf[16..20].copy_from_slice(&((self.inheritable.bits >> 32) as u32).to_le_bytes());
+
+        if let Some(rootid) = self.rootid {
+            buf[len..len + 4].copy_from_slice(&rootid.to_le_bytes());
+            len += 4;
+        }
+
+        len
+    }
+
+    /// "Pack" the file capabilities represented by this object; i.e. convert it to the raw binary
+    /// data as stored in the extended attribute.
+    ///
+    /// **Note**: Most users should call [`set_for_file()`] or [`set_for_fd()`]; those methods
+    /// handle the details of "packing" file capabilities internally.
+    ///
+    /// This is the reverse of [`unpack_attrs()`]. As a result, "packing" the object using this
+    /// method and then "unpacking" it using `unpack_attrs()` should always return a `FileCaps`
+    /// object that represents the same state. So:
+    ///
+    /// ```
+    /// # use capctl::caps::FileCaps;
+    /// let fcaps = FileCaps::empty();
+    /// assert_eq!(FileCaps::unpack_attrs(&fcaps.pack_attrs()).unwrap(), fcaps);
+    /// ```
+    ///
+    /// (Note, however, that the reverse is not always true. For example, version 1 file
+    /// capabilities can be "unpacked", but they will be "packed" as version 2 file capabilities,
+    /// and as a result the binary data will be different.)
+    ///
+    /// [`set_for_file()`]: #method.set_for_file
+    /// [`set_for_fd()`]: #method.set_for_fd
+    /// [`unpack_attrs()`]: #method.unpack_attrs
+    #[inline]
+    pub fn pack_attrs(&self) -> Vec<u8> {
+        let mut buf = vec![0u8; crate::constants::XATTR_CAPS_MAX_SIZE];
+
+        let len = self.pack_into(&mut buf);
+        buf.truncate(len);
+
+        buf
+    }
+
+    /// Remove the file capabilities attached to the file identified by `path`.
+    #[inline]
+    pub fn remove_for_file<P: AsRef<OsStr>>(path: P) -> io::Result<()> {
+        let path = CString::new(path.as_ref().as_bytes())?;
+
+        if unsafe {
+            libc::removexattr(
+                path.as_ptr() as *const libc::c_char,
+                crate::constants::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
+            )
+        } < 0
+        {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Remove the file capabilities attached to the open file identified by `fd`.
+    #[inline]
+    pub fn remove_for_fd(fd: RawFd) -> io::Result<()> {
+        if unsafe {
+            libc::fremovexattr(
+                fd,
+                crate::constants::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
+            )
+        } < 0
+        {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(())
+        }
+    }
 }
 
 #[cfg(test)]
@@ -201,7 +343,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filecaps_unpack() {
+    fn test_filecaps_pack_unpack() {
         assert_eq!(
             FileCaps::unpack_attrs(b"").unwrap_err().raw_os_error(),
             Some(libc::EINVAL)
@@ -230,33 +372,38 @@ mod tests {
             },
         );
 
-        // Version 2 (real example, from Wireshark's /usr/bin/dumpcap)
-        assert_eq!(
-            FileCaps::unpack_attrs(
-                b"\x01\x00\x00\x02\x020\x00\x00\x020\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-            )
-            .unwrap(),
-            FileCaps {
-                effective: true,
-                permitted: CapSet::from_iter(vec![Cap::DAC_OVERRIDE, Cap::NET_ADMIN, Cap::NET_RAW]),
-                inheritable: CapSet::from_iter(vec![
-                    Cap::DAC_OVERRIDE,
-                    Cap::NET_ADMIN,
-                    Cap::NET_RAW
-                ]),
-                rootid: None,
-            },
-        );
+        // Round-tripping Version 2 and Version 3 capabilities
 
-        // Version 3
-        assert_eq!(
-            FileCaps::unpack_attrs(b"\x01\x00\x00\x03\x020\x00\x00\x020\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe8\x03\x00\x00").unwrap(),
-            FileCaps {
-                effective: true,
-                permitted: CapSet::from_iter(vec![Cap::DAC_OVERRIDE, Cap::NET_ADMIN, Cap::NET_RAW]),
-                inheritable: CapSet::from_iter(vec![Cap::DAC_OVERRIDE, Cap::NET_ADMIN, Cap::NET_RAW]),
-                rootid: Some(1000),
-            },
-        );
+        for (attr_data, fcaps) in [
+            // Version 2 (real example, from Wireshark's /usr/bin/dumpcap)
+            (
+                b"\x01\x00\x00\x02\x020\x00\x00\x020\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".as_ref(),
+                 FileCaps {
+                    effective: true,
+                    permitted: CapSet::from_iter(vec![Cap::DAC_OVERRIDE, Cap::NET_ADMIN, Cap::NET_RAW]),
+                    inheritable: CapSet::from_iter(vec![
+                        Cap::DAC_OVERRIDE,
+                        Cap::NET_ADMIN,
+                        Cap::NET_RAW
+                    ]),
+                    rootid: None,
+                }
+            ),
+
+            // Version 3
+            (
+                b"\x00\x00\x00\x03\x020\x00\x00\x020\x00\x00\x04\x00\x00\x00\x08\x00\x00\x00\xe8\x03\x00\x00".as_ref(),
+                FileCaps {
+                    effective: false,
+                    permitted: CapSet::from_iter(vec![Cap::DAC_OVERRIDE, Cap::NET_ADMIN, Cap::NET_RAW, Cap::SYSLOG]),
+                    inheritable: CapSet::from_iter(vec![Cap::DAC_OVERRIDE, Cap::NET_ADMIN, Cap::NET_RAW, Cap::WAKE_ALARM]),
+                    rootid: Some(1000),
+                }
+            ),
+        ].iter() {
+            assert_eq!(FileCaps::unpack_attrs(attr_data).unwrap(), *fcaps);
+
+            assert_eq!(&fcaps.pack_attrs(), attr_data);
+        }
     }
 }
