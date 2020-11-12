@@ -105,7 +105,6 @@ impl CapSet {
         }
     }
 
-    /// Returns the union
     #[doc(hidden)]
     #[inline]
     pub fn from_bitmask_truncate(bitmask: u64) -> Self {
