@@ -146,4 +146,14 @@ mod tests {
             Some(libc::ESRCH)
         );
     }
+
+    #[test]
+    fn test_pid_1_match() {
+        let state = CapState::get_for_pid(1).unwrap();
+        let fullstate = FullCapState::get_for_pid(1).unwrap();
+
+        assert_eq!(state.effective, fullstate.effective);
+        assert_eq!(state.permitted, fullstate.permitted);
+        assert_eq!(state.inheritable, fullstate.inheritable);
+    }
 }
