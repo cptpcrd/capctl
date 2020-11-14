@@ -1,5 +1,5 @@
 // WARNING: Updating to newer versions may require significant
-// code changes to process/capabilities.rs
+// code changes to caps/capstate.rs
 pub const _LINUX_CAPABILITY_VERSION_3: u32 = 0x2008_0522;
 
 // File capabilities constants
