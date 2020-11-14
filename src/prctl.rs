@@ -263,6 +263,36 @@ pub fn set_securebits(flags: Secbits) -> io::Result<()> {
     Ok(())
 }
 
+/// Get the secure computing mode of the current thread.
+///
+/// If the thread is not in secure computing mode, this function returns `false`; if it is in
+/// seccomp filter mode (and the `prctl()` syscall with the given arguments is allowed by the
+/// filters) then this function returns `true`; if it is in strict computing mode then it will be
+/// sent a SIGKILL signal.
+pub fn get_seccomp() -> io::Result<bool> {
+    let res = unsafe { crate::raw_prctl(libc::PR_GET_SECCOMP, 0, 0, 0, 0) }?;
+
+    Ok(res != 0)
+}
+
+/// Enable strict secure computing mode.
+///
+/// After this call, any syscalls except `read()`, `write()`, `_exit()`, and `sigreturn()` will
+/// cause the thread to be terminated with SIGKILL.
+pub fn set_seccomp_strict() -> io::Result<()> {
+    unsafe {
+        crate::raw_prctl(
+            libc::PR_SET_SECCOMP,
+            libc::SECCOMP_MODE_STRICT as libc::c_ulong,
+            0,
+            0,
+            0,
+        )
+    }?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -375,6 +405,35 @@ mod tests {
                     .raw_os_error(),
                 Some(libc::EPERM)
             );
+        }
+    }
+
+    #[test]
+    fn test_set_seccomp_strict() {
+        match unsafe { libc::fork() } {
+            -1 => panic!("{}", std::io::Error::last_os_error()),
+            0 => {
+                set_seccomp_strict().unwrap();
+
+                unsafe {
+                    libc::syscall(libc::SYS_exit, 0);
+                    libc::exit(0);
+                }
+            }
+            pid => {
+                let mut wstatus = 0;
+                if unsafe { libc::waitpid(pid, &mut wstatus, 0) } != pid {
+                    panic!("{}", std::io::Error::last_os_error());
+                }
+
+                let retcode = if libc::WIFSIGNALED(wstatus) {
+                    -libc::WTERMSIG(wstatus)
+                } else {
+                    libc::WEXITSTATUS(wstatus)
+                };
+
+                assert_eq!(retcode, 0);
+            }
         }
     }
 }
