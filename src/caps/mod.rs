@@ -317,7 +317,10 @@ mod tests {
         assert_eq!(Cap::CHOWN.to_string(), "CAP_CHOWN");
 
         for cap in Cap::iter() {
-            assert_eq!(Cap::from_str(&cap.to_string()), Ok(cap));
+            let s = cap.to_string();
+            assert_eq!(Cap::from_str(&s), Ok(cap));
+            assert_eq!(Cap::from_str(&s.to_lowercase()), Ok(cap));
+            assert_eq!(Cap::from_str(&s.to_uppercase()), Ok(cap));
         }
     }
 
