@@ -30,6 +30,8 @@ impl CapState {
     }
 
     /// Get the capability state of the process (or thread) with the given PID (or TID).
+    ///
+    /// If `pid` is 0, this method gets the capability state of the current thread.
     pub fn get_for_pid(pid: libc::pid_t) -> io::Result<Self> {
         let mut header = crate::externs::cap_user_header_t {
             version: crate::constants::_LINUX_CAPABILITY_VERSION_3,
