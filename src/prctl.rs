@@ -433,13 +433,8 @@ mod tests {
                     panic!("{}", std::io::Error::last_os_error());
                 }
 
-                let retcode = if libc::WIFSIGNALED(wstatus) {
-                    -libc::WTERMSIG(wstatus)
-                } else {
-                    libc::WEXITSTATUS(wstatus)
-                };
-
-                assert_eq!(retcode, 0);
+                assert!(libc::WIFEXITED(wstatus));
+                assert_eq!(libc::WEXITSTATUS(wstatus), 0);
             }
         }
     }
