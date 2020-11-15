@@ -300,6 +300,19 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_cap_u8() {
+        for (_, cap) in CAPS_BY_NAME.iter() {
+            assert_eq!(Cap::from_u8(*cap as u8), Some(*cap));
+        }
+
+        assert_eq!(Cap::from_u8(NUM_CAPS), None);
+        assert_eq!(
+            Cap::from_u8(CAPS_BY_NAME.iter().last().unwrap().1 as u8 + 1),
+            None
+        );
+    }
+
+    #[test]
     fn test_cap_string() {
         assert_eq!(Cap::from_str("CAP_CHOWN"), Ok(Cap::CHOWN));
         assert_eq!(Cap::from_str("cap_CHOWN"), Ok(Cap::CHOWN));
