@@ -409,6 +409,13 @@ mod tests {
     }
 
     #[test]
+    fn test_get_seccomp() {
+        // We might be running in a Docker container or something with seccomp rules, so we can't
+        // check the return value
+        get_seccomp().unwrap();
+    }
+
+    #[test]
     fn test_set_seccomp_strict() {
         match unsafe { libc::fork() } {
             -1 => panic!("{}", std::io::Error::last_os_error()),
