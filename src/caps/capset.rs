@@ -233,7 +233,7 @@ macro_rules! capset {
         $crate::caps::CapSet::empty()
     };
     ($cap:expr$(, $caps:expr)*) => {
-        $crate::caps::CapSet::from_bitmask_truncate((1 << ($cap as u8)) $(| (1 << ($caps as u8)))*)
+        $crate::caps::CapSet::from_bitmask_truncate((1 << ($cap as $crate::caps::Cap as u8)) $(| (1 << ($caps as $crate::caps::Cap as u8)))*)
     };
     ($cap:expr, $($caps:expr,)*) => {
         capset!($cap$(, $caps)*)
@@ -557,6 +557,10 @@ mod tests {
 
         assert_eq!(capset!(Cap::CHOWN), CapSet::from_iter(vec![Cap::CHOWN]));
         assert_eq!(capset!(Cap::CHOWN,), CapSet::from_iter(vec![Cap::CHOWN]));
+
+        let cap = Cap::CHOWN;
+        assert_eq!(capset!(cap), CapSet::from_iter(vec![cap]));
+        assert_eq!(capset!(cap,), CapSet::from_iter(vec![cap]));
 
         assert_eq!(
             capset!(Cap::CHOWN, Cap::SYSLOG),
