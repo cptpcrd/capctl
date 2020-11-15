@@ -260,6 +260,25 @@ impl Iterator for CapSetIterator {
     }
 
     #[inline]
+    fn last(self) -> Option<Cap> {
+        // This calculates the position of the largest bit that is set.
+        // For example, if the bitmask is 0b10101, n=5.
+        let n = std::mem::size_of::<u64>() as u8 * 8 - self.set.bits.leading_zeros() as u8;
+
+        if self.i < n {
+            // We haven't yet passed the largest bit.
+            // This uses `<` instead of `<=` because `self.i` and `n` are off by 1 (so we also have
+            // to subtract 1 below).
+
+            let res = Cap::from_u8(n - 1);
+            debug_assert!(res.is_some());
+            res
+        } else {
+            None
+        }
+    }
+
+    #[inline]
     fn count(self) -> usize {
         self.len()
     }
@@ -412,6 +431,45 @@ mod tests {
             assert_eq!(it.clone().count(), 0);
             assert_eq!(it.size_hint(), (0, Some(0)));
         }
+    }
+
+    #[test]
+    fn test_capset_iter_last() {
+        let last_cap = Cap::iter().last().unwrap();
+
+        assert_eq!(CapSet::from_iter(Cap::iter()).iter().last(), Some(last_cap));
+        assert_eq!(CapSet::empty().iter().last(), None);
+
+        let mut it = CapSet::from_iter(Cap::iter()).iter();
+        assert_eq!(it.clone().last(), Some(last_cap));
+        while it.next().is_some() {
+            if it.clone().next().is_some() {
+                assert_eq!(it.clone().last(), Some(last_cap));
+            } else {
+                assert_eq!(it.clone().last(), None);
+            }
+        }
+        assert_eq!(it.len(), 0);
+        assert_eq!(it.last(), None);
+
+        it = capset!(Cap::FOWNER).iter();
+        assert_eq!(it.clone().last(), Some(Cap::FOWNER));
+        assert_eq!(it.next(), Some(Cap::FOWNER));
+        assert_eq!(it.last(), None);
+
+        it = capset!(Cap::CHOWN).iter();
+        assert_eq!(it.clone().last(), Some(Cap::CHOWN));
+        assert_eq!(it.next(), Some(Cap::CHOWN));
+        assert_eq!(it.last(), None);
+
+        it = capset!(Cap::CHOWN, Cap::FOWNER).iter();
+        assert_eq!(it.clone().last(), Some(Cap::FOWNER));
+        assert_eq!(it.next(), Some(Cap::CHOWN));
+        assert_eq!(it.clone().last(), Some(Cap::FOWNER));
+        assert_eq!(it.next(), Some(Cap::FOWNER));
+        assert_eq!(it.clone().last(), None);
+        assert_eq!(it.next(), None);
+        assert_eq!(it.last(), None);
     }
 
     #[test]
