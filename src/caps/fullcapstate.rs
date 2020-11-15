@@ -52,16 +52,14 @@ impl FullCapState {
     /// examining special files in `/proc`.
     ///
     /// If `pid` is 0, this method gets the capability state of the current thread.
-    pub fn get_for_pid(mut pid: libc::pid_t) -> io::Result<Self> {
-        match pid.cmp(&0) {
+    pub fn get_for_pid(pid: libc::pid_t) -> io::Result<Self> {
+        let file_res = match pid.cmp(&0) {
             std::cmp::Ordering::Less => return Err(io::Error::from_raw_os_error(libc::EINVAL)),
-            std::cmp::Ordering::Equal => {
-                pid = unsafe { libc::syscall(libc::SYS_gettid) } as libc::pid_t;
-            }
-            std::cmp::Ordering::Greater => (),
-        }
+            std::cmp::Ordering::Equal => fs::File::open("/proc/thread-self/status"),
+            std::cmp::Ordering::Greater => fs::File::open(format!("/proc/{}/status", pid)),
+        };
 
-        let f = match fs::File::open(format!("/proc/{}/status", pid)) {
+        let f = match file_res {
             Ok(f) => f,
             Err(e) if e.raw_os_error() == Some(libc::ENOENT) => {
                 return Err(io::Error::from_raw_os_error(libc::ESRCH));
