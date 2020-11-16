@@ -143,8 +143,8 @@ impl Cap {
 
     #[inline]
     fn to_single_bitfield(self) -> u64 {
-        // Sanity check in case CAP_MAX gets set incorrectly
-        // Note that this still won't catch certain cases
+        // Sanity check to help ensure CAP_MAX is set correctly (note that this will only catch some
+        // cases)
         debug_assert!((self as u8) <= CAP_MAX);
 
         (1 as u64) << (self as u8)
@@ -187,30 +187,6 @@ impl Cap {
     }
 }
 
-/// Represents an error when parsing a `Cap` from a string.
-#[derive(Clone, Eq, PartialEq)]
-pub struct ParseCapError(());
-
-impl fmt::Debug for ParseCapError {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Unknown capability")
-    }
-}
-
-impl fmt::Display for ParseCapError {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(self, f)
-    }
-}
-
-impl std::error::Error for ParseCapError {
-    fn description(&self) -> &str {
-        "Unknown capability"
-    }
-}
-
 impl std::str::FromStr for Cap {
     type Err = ParseCapError;
 
@@ -233,6 +209,30 @@ impl fmt::Display for Cap {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "CAP_")?;
         fmt::Debug::fmt(self, f)
+    }
+}
+
+/// Represents an error when parsing a `Cap` from a string.
+#[derive(Clone, Eq, PartialEq)]
+pub struct ParseCapError(());
+
+impl fmt::Debug for ParseCapError {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Unknown capability")
+    }
+}
+
+impl fmt::Display for ParseCapError {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+impl std::error::Error for ParseCapError {
+    fn description(&self) -> &str {
+        "Unknown capability"
     }
 }
 

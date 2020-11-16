@@ -91,6 +91,7 @@ mod tests {
 
     #[test]
     fn test_set_ids_none() {
+        // All this does is clear the effective capability set
         cap_set_ids(None, None, None).unwrap();
 
         assert!(crate::caps::CapState::get_current()
