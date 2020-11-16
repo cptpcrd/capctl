@@ -13,9 +13,13 @@ pub fn drop(cap: Cap) -> io::Result<()> {
 /// Check if the given capability is raised in the current thread's bounding capability set.
 #[inline]
 pub fn read(cap: Cap) -> Option<bool> {
-    Some(
-        unsafe { crate::raw_prctl_opt(libc::PR_CAPBSET_READ, cap as libc::c_ulong, 0, 0, 0)? } != 0,
-    )
+    match unsafe { crate::raw_prctl_opt(libc::PR_CAPBSET_READ, cap as libc::c_ulong, 0, 0, 0) } {
+        Some(res) => Some(res != 0),
+        None => {
+            debug_assert_eq!(unsafe { *libc::__errno_location() }, libc::EINVAL);
+            None
+        }
+    }
 }
 
 /// Check if the given capability is raised in the current thread's bounding capability set.
