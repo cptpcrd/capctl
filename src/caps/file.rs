@@ -406,4 +406,37 @@ mod tests {
             assert_eq!(&fcaps.pack_attrs(), attr_data);
         }
     }
+
+    #[test]
+    fn test_filecaps_set_error() {
+        let current_exe = std::env::current_exe().unwrap();
+
+        assert_eq!(
+            FileCaps::empty()
+                .set_for_file(current_exe.join("sub"))
+                .unwrap_err()
+                .raw_os_error(),
+            Some(libc::ENOTDIR)
+        );
+        assert_eq!(
+            FileCaps::empty().set_for_fd(-1).unwrap_err().raw_os_error(),
+            Some(libc::EBADF)
+        );
+    }
+
+    #[test]
+    fn test_filecaps_remove_error() {
+        let current_exe = std::env::current_exe().unwrap();
+
+        assert_eq!(
+            FileCaps::remove_for_file(current_exe.join("sub"))
+                .unwrap_err()
+                .raw_os_error(),
+            Some(libc::ENOTDIR)
+        );
+        assert_eq!(
+            FileCaps::remove_for_fd(-1).unwrap_err().raw_os_error(),
+            Some(libc::EBADF)
+        );
+    }
 }
