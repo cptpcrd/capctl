@@ -170,6 +170,8 @@ impl FileCaps {
         let mut buf = [0u8; crate::constants::XATTR_CAPS_MAX_SIZE];
         let len = self.pack_into(&mut buf);
 
+        debug_assert!(len <= buf.len());
+
         if unsafe {
             libc::setxattr(
                 path.as_ptr(),
@@ -192,6 +194,8 @@ impl FileCaps {
     pub fn set_for_fd(&self, fd: RawFd) -> io::Result<()> {
         let mut buf = [0u8; crate::constants::XATTR_CAPS_MAX_SIZE];
         let len = self.pack_into(&mut buf);
+
+        debug_assert!(len <= buf.len());
 
         if unsafe {
             libc::fsetxattr(
