@@ -50,7 +50,7 @@ impl FileCaps {
 
         let ret = unsafe {
             libc::getxattr(
-                path.as_ptr() as *const libc::c_char,
+                path.as_ptr(),
                 crate::constants::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
                 data.as_mut_ptr() as *mut libc::c_void,
                 data.len(),
@@ -172,7 +172,7 @@ impl FileCaps {
 
         if unsafe {
             libc::setxattr(
-                path.as_ptr() as *const libc::c_char,
+                path.as_ptr(),
                 crate::constants::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
                 buf.as_ptr() as *const libc::c_void,
                 len,
@@ -276,7 +276,7 @@ impl FileCaps {
 
         if unsafe {
             libc::removexattr(
-                path.as_ptr() as *const libc::c_char,
+                path.as_ptr(),
                 crate::constants::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
             )
         } < 0
