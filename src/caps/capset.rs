@@ -1,6 +1,8 @@
 use std::fmt;
 use std::iter::FromIterator;
-use std::ops::{BitAnd, BitOr, BitXor, Not, Sub};
+use std::ops::{
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Sub, SubAssign,
+};
 
 use super::{Cap, CAP_BITMASK, NUM_CAPS};
 
@@ -180,6 +182,34 @@ impl Sub for CapSet {
         Self {
             bits: self.bits & (!rhs.bits),
         }
+    }
+}
+
+impl BitAndAssign for CapSet {
+    #[inline]
+    fn bitand_assign(&mut self, rhs: Self) {
+        *self = *self & rhs;
+    }
+}
+
+impl BitOrAssign for CapSet {
+    #[inline]
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = *self | rhs;
+    }
+}
+
+impl BitXorAssign for CapSet {
+    #[inline]
+    fn bitxor_assign(&mut self, rhs: Self) {
+        *self = *self ^ rhs;
+    }
+}
+
+impl SubAssign for CapSet {
+    #[inline]
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
     }
 }
 
@@ -512,6 +542,10 @@ mod tests {
         let b = CapSet::from_iter(vec![Cap::FOWNER, Cap::KILL]);
         let c = CapSet::from_iter(vec![Cap::CHOWN, Cap::FOWNER, Cap::KILL]);
         assert_eq!(a | b, c);
+
+        let mut d = a;
+        d |= b;
+        assert_eq!(d, c);
     }
 
     #[test]
@@ -520,6 +554,10 @@ mod tests {
         let b = CapSet::from_iter(vec![Cap::FOWNER, Cap::KILL]);
         let c = CapSet::from_iter(vec![Cap::FOWNER]);
         assert_eq!(a & b, c);
+
+        let mut d = a;
+        d &= b;
+        assert_eq!(d, c);
     }
 
     #[test]
@@ -528,6 +566,10 @@ mod tests {
         let b = CapSet::from_iter(vec![Cap::FOWNER, Cap::KILL]);
         let c = CapSet::from_iter(vec![Cap::CHOWN, Cap::KILL]);
         assert_eq!(a ^ b, c);
+
+        let mut d = a;
+        d ^= b;
+        assert_eq!(d, c);
     }
 
     #[test]
@@ -536,6 +578,10 @@ mod tests {
         let b = CapSet::from_iter(vec![Cap::FOWNER, Cap::KILL]);
         let c = CapSet::from_iter(vec![Cap::CHOWN]);
         assert_eq!(a - b, c);
+
+        let mut d = a;
+        d -= b;
+        assert_eq!(d, c);
     }
 
     #[test]
