@@ -205,6 +205,12 @@ impl fmt::Display for ParseCapError {
     }
 }
 
+impl std::error::Error for ParseCapError {
+    fn description(&self) -> &str {
+        "Unknown capability"
+    }
+}
+
 impl std::str::FromStr for Cap {
     type Err = ParseCapError;
 
@@ -337,8 +343,11 @@ mod tests {
         }
     }
 
+    #[allow(deprecated)]
     #[test]
     fn test_cap_string_error() {
+        use std::error::Error;
+
         let err = ParseCapError(());
 
         // Make sure clone() and eq() work
@@ -349,6 +358,7 @@ mod tests {
         // Make sure the string representations match
         assert_eq!(err.to_string(), "Unknown capability");
         assert_eq!(format!("{:?}", err), "Unknown capability");
+        assert_eq!(err.description(), "Unknown capability");
     }
 
     #[test]
