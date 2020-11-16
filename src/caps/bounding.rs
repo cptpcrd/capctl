@@ -54,4 +54,20 @@ mod tests {
         probe();
         is_set(Cap::CHOWN).unwrap();
     }
+
+    #[test]
+    fn test_bounding_drop() {
+        if crate::caps::CapState::get_current()
+            .unwrap()
+            .effective
+            .has(crate::caps::Cap::SETPCAP)
+        {
+            drop(crate::caps::Cap::SETPCAP).unwrap();
+        } else {
+            assert_eq!(
+                drop(crate::caps::Cap::SETPCAP).unwrap_err().raw_os_error(),
+                Some(libc::EPERM)
+            );
+        }
+    }
 }
