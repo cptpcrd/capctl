@@ -94,12 +94,10 @@ impl FullCapState {
                 };
 
                 if let Some(set) = set {
-                    if line.len() > i + 2 {
-                        match u64::from_str_radix(value, 16) {
-                            Ok(bitmask) => *set = CapSet::from_bitmask_truncate(bitmask),
-                            Err(e) => {
-                                return Err(io::Error::new(io::ErrorKind::Other, e.to_string()));
-                            }
+                    match u64::from_str_radix(value, 16) {
+                        Ok(bitmask) => *set = CapSet::from_bitmask_truncate(bitmask),
+                        Err(e) => {
+                            return Err(io::Error::new(io::ErrorKind::Other, e.to_string()));
                         }
                     }
                 }
