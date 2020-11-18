@@ -20,6 +20,9 @@ jobs:
           - i686-unknown-linux-gnu
           - i686-unknown-linux-musl
         os: [ubuntu-latest]
+        features:
+          - ''
+          - serde
 
     # Allow nightly builds to fail
     continue-on-error: ${{ matrix.toolchain == 'nightly' }}
@@ -43,14 +46,14 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           command: build
-          args: --verbose --target ${{ matrix.target }}
+          args: --verbose --target ${{ matrix.target }} --features ${{ matrix.features }}
 
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           toolchain: ${{ matrix.toolchain }}
           command: test
-          args: --verbose --target ${{ matrix.target }}
+          args: --verbose --target ${{ matrix.target }} --features ${{ matrix.features }}
         # Only try to run the tests if the OS/architecture we're building for
         # matches the host machine.
         if: >-
@@ -69,6 +72,9 @@ jobs:
           - x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
         os: [ubuntu-latest]
+        features:
+          - ''
+          - serde
 
     runs-on: ${{ matrix.os }}
 
@@ -92,7 +98,7 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           command: tarpaulin
-          args: --verbose --out Xml --target ${{ matrix.target }}
+          args: --verbose --out Xml --target ${{ matrix.target }} --features ${{ matrix.features }}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1.0.13
