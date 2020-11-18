@@ -65,7 +65,7 @@ pub enum Cap {
     PERFMON = 38,
     BPF = 39,
     CHECKPOINT_RESTORE = 40,
-    // Note: When adding a new capability, make sure to update LAST_CAP and CAPS_BY_NAME
+    // Note: When adding a new capability, make sure to update LAST_CAP and CAP_NAMES
 }
 
 // *** WARNING WARNING WARNING ***
@@ -79,54 +79,48 @@ const NUM_CAPS: u8 = CAP_MAX + 1;
 // Shift to the left, then subtract one to get the lower bits filled with ones.
 const CAP_BITMASK: u64 = ((1 as u64) << NUM_CAPS) - 1;
 
-macro_rules! cap_name {
-    ($name:ident) => {
-        (stringify!($name), Cap::$name)
-    };
-}
-
-static CAPS_BY_NAME: [(&str, Cap); NUM_CAPS as usize] = [
-    cap_name!(CHOWN),
-    cap_name!(DAC_OVERRIDE),
-    cap_name!(DAC_READ_SEARCH),
-    cap_name!(FOWNER),
-    cap_name!(FSETID),
-    cap_name!(KILL),
-    cap_name!(SETGID),
-    cap_name!(SETUID),
-    cap_name!(SETPCAP),
-    cap_name!(LINUX_IMMUTABLE),
-    cap_name!(NET_BIND_SERVICE),
-    cap_name!(NET_BROADCAST),
-    cap_name!(NET_ADMIN),
-    cap_name!(NET_RAW),
-    cap_name!(IPC_LOCK),
-    cap_name!(IPC_OWNER),
-    cap_name!(SYS_MODULE),
-    cap_name!(SYS_RAWIO),
-    cap_name!(SYS_CHROOT),
-    cap_name!(SYS_PTRACE),
-    cap_name!(SYS_PACCT),
-    cap_name!(SYS_ADMIN),
-    cap_name!(SYS_BOOT),
-    cap_name!(SYS_NICE),
-    cap_name!(SYS_RESOURCE),
-    cap_name!(SYS_TIME),
-    cap_name!(SYS_TTY_CONFIG),
-    cap_name!(MKNOD),
-    cap_name!(LEASE),
-    cap_name!(AUDIT_WRITE),
-    cap_name!(AUDIT_CONTROL),
-    cap_name!(SETFCAP),
-    cap_name!(MAC_OVERRIDE),
-    cap_name!(MAC_ADMIN),
-    cap_name!(SYSLOG),
-    cap_name!(WAKE_ALARM),
-    cap_name!(BLOCK_SUSPEND),
-    cap_name!(AUDIT_READ),
-    cap_name!(PERFMON),
-    cap_name!(BPF),
-    cap_name!(CHECKPOINT_RESTORE),
+static CAP_NAMES: [&str; NUM_CAPS as usize] = [
+    "CHOWN",
+    "DAC_OVERRIDE",
+    "DAC_READ_SEARCH",
+    "FOWNER",
+    "FSETID",
+    "KILL",
+    "SETGID",
+    "SETUID",
+    "SETPCAP",
+    "LINUX_IMMUTABLE",
+    "NET_BIND_SERVICE",
+    "NET_BROADCAST",
+    "NET_ADMIN",
+    "NET_RAW",
+    "IPC_LOCK",
+    "IPC_OWNER",
+    "SYS_MODULE",
+    "SYS_RAWIO",
+    "SYS_CHROOT",
+    "SYS_PTRACE",
+    "SYS_PACCT",
+    "SYS_ADMIN",
+    "SYS_BOOT",
+    "SYS_NICE",
+    "SYS_RESOURCE",
+    "SYS_TIME",
+    "SYS_TTY_CONFIG",
+    "MKNOD",
+    "LEASE",
+    "AUDIT_WRITE",
+    "AUDIT_CONTROL",
+    "SETFCAP",
+    "MAC_OVERRIDE",
+    "MAC_ADMIN",
+    "SYSLOG",
+    "WAKE_ALARM",
+    "BLOCK_SUSPEND",
+    "AUDIT_READ",
+    "PERFMON",
+    "BPF",
+    "CHECKPOINT_RESTORE",
 ];
 
 impl Cap {
@@ -202,9 +196,9 @@ impl std::str::FromStr for Cap {
         if s.len() > 4 && s[..4].eq_ignore_ascii_case("CAP_") {
             let s = &s[4..];
 
-            for (cap_name, cap) in CAPS_BY_NAME.iter() {
+            for (i, cap_name) in CAP_NAMES.iter().enumerate() {
                 if cap_name.eq_ignore_ascii_case(s) {
-                    return Ok(*cap);
+                    return Ok(Cap::from_u8(i as u8).unwrap());
                 }
             }
         }
@@ -315,15 +309,11 @@ mod tests {
 
     #[test]
     fn test_cap_u8() {
-        for (_, cap) in CAPS_BY_NAME.iter() {
-            assert_eq!(Cap::from_u8(*cap as u8), Some(*cap));
+        for i in 0..NUM_CAPS {
+            assert_eq!(Cap::from_u8(i).unwrap() as u8, i);
         }
 
         assert_eq!(Cap::from_u8(NUM_CAPS), None);
-        assert_eq!(
-            Cap::from_u8(CAPS_BY_NAME.iter().last().unwrap().1 as u8 + 1),
-            None
-        );
     }
 
     #[test]
