@@ -6,6 +6,7 @@ use super::{ambient, bounding, CapSet, CapState};
 
 /// Represents the "full" capability state of a thread (i.e. the contents of all 5 capability
 /// sets and some additional information).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub struct FullCapState {

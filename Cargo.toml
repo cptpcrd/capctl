@@ -11,6 +11,14 @@ categories = ["os::linux-apis"]
 keywords = ["prctl", "capabilities"]
 repository = "https://github.com/cptpcrd/capctl"
 
+[features]
+default = []
+
 [dependencies]
 libc = "0.2"
 bitflags = "1.2"
+
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[dev-dependencies]
+serde_test = "1.0"

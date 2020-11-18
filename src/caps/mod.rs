@@ -6,6 +6,9 @@ mod file;
 mod fullcapstate;
 mod helpers;
 
+#[cfg(feature = "serde")]
+mod serde_impl;
+
 pub mod ambient;
 pub mod bounding;
 pub use capset::{CapSet, CapSetIterator};
@@ -15,6 +18,7 @@ pub use fullcapstate::FullCapState;
 pub use helpers::cap_set_ids;
 
 /// An enum representing all of the possible Linux capabilities.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 #[repr(u8)]
 #[allow(non_camel_case_types)]

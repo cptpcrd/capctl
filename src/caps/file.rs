@@ -6,6 +6,7 @@ use std::os::unix::prelude::*;
 use super::CapSet;
 
 /// Represents the capabilities attached to a file.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub struct FileCaps {

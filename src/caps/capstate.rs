@@ -3,6 +3,7 @@ use std::io;
 use super::CapSet;
 
 /// Represents the permitted, effective, and inheritable capability sets of a thread.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct CapState {
     pub effective: CapSet,
