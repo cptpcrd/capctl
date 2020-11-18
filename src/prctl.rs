@@ -293,6 +293,44 @@ pub fn set_seccomp_strict() -> io::Result<()> {
     Ok(())
 }
 
+/// Get the current timer slack value.
+///
+/// See [`set_timerslack()`](./fn.set_timerslack.html) for more details.
+///
+/// # Behavior at extreme values
+///
+/// This function may not work correctly (specifically, it may return strange `Err` values) if the
+/// current timer slack value is larger than `libc::c_ulong::MAX - 4095` or so. Unfortunately, this
+/// isn't really possible to fix because of the design of the underlying `prctl()` call. However,
+/// most users are unlikely to encounter this error because timer slack values in this range are
+/// generally not useful.
+///
+/// If you *really* need to handle values in this range, try
+/// `std::fs::read_to_string("/proc/self/timerslack_ns")?.trim().parse::<libc::c_ulong>().unwrap()`
+/// (only works on Linux 4.6+).
+pub fn get_timerslack() -> io::Result<libc::c_ulong> {
+    let res = unsafe { libc::syscall(libc::SYS_prctl, libc::PR_GET_TIMERSLACK, 0, 0, 0) };
+
+    if res == -1 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(res as libc::c_ulong)
+    }
+}
+
+/// Set the current timer slack value.
+///
+/// The timer slack value is used by the kernel to group timer expirations (`select()`,
+/// `epoll_wait()`, `nanosleep()`, etc.) for the calling thread. See prctl(2) for more details.
+///
+/// Note: Passing a value of 0 will reset the current timer slack value to the "default" timer
+/// slack value (which is inherited from the parent). Again, prctl(2) contains more information.
+pub fn set_timerslack(new_slack: libc::c_ulong) -> io::Result<()> {
+    unsafe { crate::raw_prctl(libc::PR_SET_TIMERSLACK, new_slack, 0, 0, 0) }?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -437,5 +475,27 @@ mod tests {
                 assert_eq!(libc::WEXITSTATUS(wstatus), 0);
             }
         }
+    }
+
+    #[test]
+    fn test_timerslack() {
+        let orig_timerslack = get_timerslack().unwrap();
+        set_timerslack(orig_timerslack + 1).unwrap();
+
+        std::thread::spawn(move || {
+            // The timer slack value is inherited
+            assert_eq!(get_timerslack().unwrap(), orig_timerslack + 1);
+
+            // We can change it
+            set_timerslack(orig_timerslack).unwrap();
+            assert_eq!(get_timerslack().unwrap(), orig_timerslack);
+
+            // And if we set it to "0", it reverts to the "default" value inherited from the parent
+            // thread
+            set_timerslack(0).unwrap();
+            assert_eq!(get_timerslack().unwrap(), orig_timerslack + 1);
+        })
+        .join()
+        .unwrap();
     }
 }
