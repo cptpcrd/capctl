@@ -113,6 +113,10 @@ impl CapSet {
         }
     }
 
+    /// WARNING: This is an internal method and its signature may change in the future. Use [the
+    /// `capset!()` macro] instead.
+    ///
+    /// [the `capset!()` macro]: ../macro.capset.html
     #[doc(hidden)]
     #[inline]
     pub fn from_bitmask_truncate(bitmask: u64) -> Self {
