@@ -168,8 +168,12 @@ impl Cap {
     pub fn probe_supported() -> CapSet {
         // Do a binary search
 
-        let mut min = 0;
+        // Rust currently supports kernel 2.6.32+. CAP_MAC_ADMIN was the last capability added
+        // before that release (in kernel 2.6.25).
+        let mut min = Self::MAC_ADMIN as u8;
         let mut max = CAP_MAX;
+
+        debug_assert!(Self::from_u8(min).unwrap().is_supported());
 
         while min != max {
             // This basically does `mid = ceil((min + max) / 2)`.
