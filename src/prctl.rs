@@ -195,6 +195,7 @@ pub fn get_pdeathsig() -> io::Result<Option<libc::c_int>> {
 }
 
 bitflags::bitflags! {
+    /// Represents the thread's securebits flags.
     pub struct Secbits: libc::c_ulong {
         /// If this flag is set, the kernel does not grant capabilities when a SUID-root program is
         /// executed, or when a process with an effective/real UID of 0 calls `exec()`.

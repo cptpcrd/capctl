@@ -11,6 +11,9 @@ pub fn drop(cap: Cap) -> io::Result<()> {
 }
 
 /// Check if the given capability is raised in the current thread's bounding capability set.
+///
+/// This returns `Some(true)` if the given capability is raised, `Some(false)` if it is lowered, and
+/// `None` if it is not supported.
 #[inline]
 pub fn read(cap: Cap) -> Option<bool> {
     match unsafe { crate::raw_prctl_opt(libc::PR_CAPBSET_READ, cap as libc::c_ulong, 0, 0, 0) } {
