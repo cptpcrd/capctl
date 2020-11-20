@@ -1,11 +1,21 @@
 use std::convert::TryInto;
 use std::ffi::{CString, OsStr};
+use std::fmt;
 use std::io;
 use std::os::unix::prelude::*;
 
-use super::CapSet;
+use super::cap_text::{caps_from_text, caps_to_text, ParseCapsError};
+use super::{CapSet, CapState};
 
 /// Represents the capabilities attached to a file.
+///
+/// # `FromStr` and `Display` implementations
+///
+/// Like [`CapState`], this struct's implementations of  `FromStr` and `Display` use the same format
+/// as `libcap`'s `cap_from_text()` and `cap_to_text()`. See `CapState`'s [documentation on
+/// this](./struct.CapState.html#fromstr-and-display-implementations) for more details.
+///
+/// [`CapState`]: ./struct.CapState.html
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
@@ -310,11 +320,73 @@ impl FileCaps {
     }
 }
 
+impl fmt::Display for FileCaps {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        caps_to_text(
+            CapState {
+                effective: if self.effective {
+                    self.permitted
+                } else {
+                    CapSet::empty()
+                },
+                permitted: self.permitted,
+                inheritable: self.inheritable,
+            },
+            f,
+        )
+    }
+}
+
+impl std::str::FromStr for FileCaps {
+    type Err = ParseFileCapsError;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match caps_from_text(s) {
+            Ok(state) => {
+                if !state.effective.is_empty() && state.effective != state.permitted {
+                    return Err(ParseFileCapsError(ParseCapsError::BadFileEffective));
+                }
+
+                Ok(Self {
+                    effective: !state.effective.is_empty(),
+                    permitted: state.permitted,
+                    inheritable: state.inheritable,
+                    rootid: None,
+                })
+            }
+            Err(e) => Err(ParseFileCapsError(e)),
+        }
+    }
+}
+
+/// Represents an error when parsing a `FileCaps` object from a string.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct ParseFileCapsError(ParseCapsError);
+
+impl fmt::Display for ParseFileCapsError {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl std::error::Error for ParseFileCapsError {
+    #[allow(deprecated)]
+    #[inline]
+    fn description(&self) -> &str {
+        self.0.description()
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::error::Error;
     use std::iter::FromIterator;
+    use std::str::FromStr;
 
-    use super::super::Cap;
+    use crate::caps::Cap;
+    use crate::capset;
 
     use super::*;
 
@@ -444,5 +516,87 @@ mod tests {
             FileCaps::remove_for_fd(-1).unwrap_err().raw_os_error(),
             Some(libc::EBADF)
         );
+    }
+
+    #[test]
+    fn test_filecaps_parse() {
+        // caps_from_text() has more extensive tests; we can be a little loose here
+
+        assert_eq!(
+            FileCaps::from_str("cap_chown=eip cap_chown-i cap_syslog+i").unwrap(),
+            FileCaps {
+                effective: true,
+                permitted: capset!(Cap::CHOWN),
+                inheritable: capset!(Cap::SYSLOG),
+                rootid: None,
+            }
+        );
+
+        assert_eq!(
+            FileCaps::from_str("cap_chown=p").unwrap(),
+            FileCaps {
+                effective: false,
+                permitted: capset!(Cap::CHOWN),
+                inheritable: capset!(),
+                rootid: None,
+            }
+        );
+
+        assert_eq!(
+            FileCaps::from_str("cap_chown=e").unwrap_err().to_string(),
+            "Effective set must be either empty or same as permitted set",
+        );
+
+        assert_eq!(
+            FileCaps::from_str("cap_noexist+p").unwrap_err().to_string(),
+            "Unknown capability"
+        );
+
+        #[allow(deprecated)]
+        {
+            assert_eq!(
+                FileCaps::from_str("cap_noexist+p")
+                    .unwrap_err()
+                    .description(),
+                "Unknown capability"
+            );
+        }
+    }
+
+    #[test]
+    fn test_filecaps_display() {
+        for fcaps in [
+            FileCaps::empty(),
+            FileCaps {
+                effective: true,
+                permitted: capset!(Cap::CHOWN),
+                inheritable: capset!(Cap::SYSLOG),
+                rootid: None,
+            },
+            FileCaps {
+                effective: false,
+                permitted: capset!(Cap::CHOWN),
+                inheritable: capset!(),
+                rootid: None,
+            },
+            FileCaps {
+                effective: false,
+                permitted: !capset!(Cap::CHOWN),
+                inheritable: capset!(Cap::CHOWN),
+                rootid: None,
+            },
+            FileCaps {
+                effective: false,
+                permitted: !capset!(Cap::CHOWN),
+                inheritable: !capset!(Cap::CHOWN),
+                rootid: None,
+            },
+        ]
+        .iter()
+        {
+            let s = fcaps.to_string();
+
+            assert_eq!(s.parse::<FileCaps>().unwrap(), *fcaps, "{:?}", s);
+        }
     }
 }

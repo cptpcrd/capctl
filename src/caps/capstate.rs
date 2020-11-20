@@ -1,8 +1,17 @@
+use std::fmt;
 use std::io;
 
+use super::cap_text::{caps_from_text, caps_to_text, ParseCapsError};
 use super::CapSet;
 
 /// Represents the permitted, effective, and inheritable capability sets of a thread.
+///
+/// # `FromStr` and `Display` implementations
+///
+/// This struct's implementations of  `FromStr` and `Display` use the same format as `libcap`'s
+/// `cap_from_text()` and `cap_to_text()`. For example, an empty state can be represented as `=`, a
+/// "full" state can be represented as `=eip`, and a state containing only `CAP_CHOWN` in the
+/// effective and permitted sets can be represented by `cap_chown=ep`.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct CapState {
@@ -88,9 +97,49 @@ impl CapState {
     }
 }
 
+impl fmt::Display for CapState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        caps_to_text(*self, f)
+    }
+}
+
+impl std::str::FromStr for CapState {
+    type Err = ParseCapStateError;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        caps_from_text(s).map_err(ParseCapStateError)
+    }
+}
+
+/// Represents an error when parsing a `CapState` object from a string.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct ParseCapStateError(ParseCapsError);
+
+impl fmt::Display for ParseCapStateError {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl std::error::Error for ParseCapStateError {
+    #[allow(deprecated)]
+    #[inline]
+    fn description(&self) -> &str {
+        self.0.description()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::error::Error;
+    use std::str::FromStr;
+
+    use crate::caps::Cap;
+    use crate::capset;
 
     #[test]
     fn test_capstate_empty() {
@@ -127,5 +176,149 @@ mod tests {
                 .raw_os_error(),
             Some(libc::ESRCH)
         );
+    }
+
+    #[test]
+    fn test_capstate_parse() {
+        // caps_from_text() has more extensive tests; we can be a little loose here
+
+        assert_eq!(
+            CapState::from_str("cap_chown=eip cap_chown-p cap_syslog+p").unwrap(),
+            CapState {
+                permitted: capset!(Cap::SYSLOG),
+                effective: capset!(Cap::CHOWN),
+                inheritable: capset!(Cap::CHOWN),
+            }
+        );
+
+        assert_eq!(
+            CapState::from_str("cap_noexist+p").unwrap_err().to_string(),
+            "Unknown capability"
+        );
+
+        #[allow(deprecated)]
+        {
+            assert_eq!(
+                CapState::from_str("cap_noexist+p")
+                    .unwrap_err()
+                    .description(),
+                "Unknown capability"
+            );
+        }
+    }
+
+    #[test]
+    fn test_capstate_display() {
+        // caps_to_text() has no tests in cap_text.rs, so we need to be rigorous
+
+        assert_eq!(CapState::empty().to_string(), "=");
+
+        assert_eq!(
+            CapState {
+                permitted: !capset!(),
+                effective: !capset!(),
+                inheritable: capset!(),
+            }
+            .to_string(),
+            "=ep",
+        );
+
+        assert_eq!(
+            CapState {
+                permitted: capset!(Cap::CHOWN),
+                effective: capset!(Cap::CHOWN),
+                inheritable: capset!(Cap::CHOWN),
+            }
+            .to_string(),
+            "cap_chown=eip",
+        );
+
+        assert_eq!(
+            CapState {
+                permitted: capset!(Cap::CHOWN),
+                effective: capset!(Cap::CHOWN),
+                inheritable: capset!(),
+            }
+            .to_string(),
+            "cap_chown=ep",
+        );
+
+        assert_eq!(
+            CapState {
+                permitted: !capset!(Cap::CHOWN),
+                effective: !capset!(Cap::CHOWN),
+                inheritable: capset!(),
+            }
+            .to_string(),
+            "=ep cap_chown-ep",
+        );
+
+        for state in [
+            CapState::empty(),
+            CapState {
+                permitted: !capset!(),
+                effective: !capset!(),
+                inheritable: !capset!(),
+            },
+            CapState {
+                permitted: !capset!(),
+                effective: capset!(),
+                inheritable: capset!(),
+            },
+            CapState {
+                permitted: !capset!(Cap::CHOWN),
+                effective: capset!(),
+                inheritable: capset!(),
+            },
+            CapState {
+                permitted: capset!(),
+                effective: !capset!(Cap::CHOWN),
+                inheritable: capset!(),
+            },
+            CapState {
+                permitted: capset!(),
+                effective: capset!(),
+                inheritable: !capset!(Cap::CHOWN),
+            },
+            CapState {
+                permitted: !capset!(Cap::CHOWN),
+                effective: capset!(Cap::CHOWN),
+                inheritable: capset!(),
+            },
+            CapState {
+                permitted: capset!(Cap::CHOWN),
+                effective: capset!(Cap::CHOWN),
+                inheritable: capset!(Cap::CHOWN),
+            },
+            CapState {
+                permitted: capset!(Cap::SYSLOG),
+                effective: capset!(Cap::CHOWN),
+                inheritable: capset!(Cap::CHOWN),
+            },
+            CapState {
+                permitted: capset!(Cap::SYSLOG, Cap::CHOWN),
+                effective: capset!(Cap::CHOWN),
+                inheritable: capset!(Cap::CHOWN),
+            },
+            CapState {
+                permitted: capset!(Cap::SYSLOG, Cap::CHOWN),
+                effective: capset!(Cap::SYSLOG, Cap::CHOWN),
+                inheritable: capset!(Cap::SYSLOG, Cap::CHOWN),
+            },
+            CapState {
+                permitted: capset!(),
+                effective: capset!(),
+                inheritable: capset!(Cap::SYSLOG, Cap::CHOWN),
+            },
+            // Let's try some real-world data
+            CapState::get_current().unwrap(),
+            CapState::get_for_pid(1).unwrap(),
+        ]
+        .iter()
+        {
+            let s = state.to_string();
+
+            assert_eq!(s.parse::<CapState>().unwrap(), *state, "{:?}", s);
+        }
     }
 }

@@ -1,5 +1,6 @@
 use std::fmt;
 
+mod cap_text;
 mod capset;
 mod capstate;
 mod file;
@@ -12,8 +13,8 @@ mod serde_impl;
 pub mod ambient;
 pub mod bounding;
 pub use capset::{CapSet, CapSetIterator};
-pub use capstate::CapState;
-pub use file::FileCaps;
+pub use capstate::{CapState, ParseCapStateError};
+pub use file::{FileCaps, ParseFileCapsError};
 pub use fullcapstate::FullCapState;
 pub use helpers::cap_set_ids;
 
