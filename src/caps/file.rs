@@ -17,8 +17,9 @@ pub struct FileCaps {
     /// The permitted capability set. These capabilities are automatically added to the process's
     /// new permitted capability set.
     pub permitted: CapSet,
-    /// The inheritable capability set. These capabilities are automatically added to the process's
-    /// new inheritable capability set.
+    /// The inheritable capability set. Any of these capabilities that are also present in the
+    /// process's inheritable capability set before an `execve()` are added to the new process's
+    /// permitted capability set.
     pub inheritable: CapSet,
     /// The root user ID of the user namespace in which file capabilities were added to this file.
     /// See capabilities(7) for more details. This is only set to a non-`None` value for version 3
