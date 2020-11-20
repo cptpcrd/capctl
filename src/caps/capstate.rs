@@ -45,7 +45,7 @@ impl CapState {
             inheritable: 0,
         }; 2];
 
-        if unsafe { crate::externs::capget(&mut header, &mut raw_dat[0]) } < 0 {
+        if unsafe { crate::externs::capget(&mut header, raw_dat.as_mut_ptr()) } < 0 {
             return Err(io::Error::last_os_error());
         }
 
@@ -80,7 +80,7 @@ impl CapState {
             },
         ];
 
-        if unsafe { crate::externs::capset(&mut header, &raw_dat[0]) } < 0 {
+        if unsafe { crate::externs::capset(&mut header, raw_dat.as_ptr()) } < 0 {
             return Err(io::Error::last_os_error());
         }
 

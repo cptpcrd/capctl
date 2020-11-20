@@ -1,7 +1,7 @@
 extern "C" {
-    pub fn capget(hdrp: &mut cap_user_header_t, datap: &mut cap_user_data_t) -> libc::c_int;
+    pub fn capget(hdrp: *mut cap_user_header_t, datap: *mut cap_user_data_t) -> libc::c_int;
 
-    pub fn capset(hdrp: &mut cap_user_header_t, datap: &cap_user_data_t) -> libc::c_int;
+    pub fn capset(hdrp: *mut cap_user_header_t, datap: *const cap_user_data_t) -> libc::c_int;
 }
 
 #[repr(C)]
