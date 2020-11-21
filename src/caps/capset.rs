@@ -71,8 +71,8 @@ impl CapSet {
 
     /// Adds all of the capabilities yielded by the given iterator to this set.
     ///
-    /// If you want to add all the capabilities in another capability set, you should use
-    /// `set1 = set1.union(set2)` or `set1 = set1 | set2`, NOT `set1.add_all(set2)`.
+    /// If you want to add all the capabilities in another `CapSet`, you should use
+    /// `set1 = set1.union(set2)` or `set1 |= set2`, NOT `set1.add_all(set2)`.
     pub fn add_all<T: IntoIterator<Item = Cap>>(&mut self, t: T) {
         for cap in t.into_iter() {
             self.add(cap);
@@ -81,8 +81,9 @@ impl CapSet {
 
     /// Removes all of the capabilities yielded by the given iterator from this set.
     ///
-    /// If you want to remove all the capabilities in another capability set, you should use
-    /// `set1 = set1.intersection(!set2)` or `set1 = set1 & !set2`, NOT `set1.drop_all(set2)`.
+    /// If you want to remove all the capabilities in another `CapSet`, you should use
+    /// `set1 = set1.intersection(!set2)`, `set1 &= !set2`, or `set1 -= set2`, NOT
+    /// `set1.drop_all(set2)`.
     pub fn drop_all<T: IntoIterator<Item = Cap>>(&mut self, t: T) {
         for cap in t.into_iter() {
             self.drop(cap);
