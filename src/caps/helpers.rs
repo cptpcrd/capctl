@@ -57,6 +57,37 @@ pub fn cap_set_ids(
         .and(crate::prctl::set_keepcaps(orig_keepcaps))
 }
 
+macro_rules! attr_group {
+    (#![$attr:meta] $($stmts:item)*) => {
+        $(
+            #[$attr]
+            $stmts
+        )*
+    }
+}
+
+attr_group! {
+    #![cfg(all(
+        target_pointer_width = "32",
+        any(target_arch = "arm", target_arch = "sparc", target_arch = "x86")
+    ))]
+
+    const SYS_SETRESGID: libc::c_long = libc::SYS_setresgid32;
+    const SYS_SETRESUID: libc::c_long = libc::SYS_setresuid32;
+    const SYS_SETGROUPS: libc::c_long = libc::SYS_setgroups32;
+}
+
+attr_group! {
+    #![cfg(not(all(
+        target_pointer_width = "32",
+        any(target_arch = "arm", target_arch = "sparc", target_arch = "x86")
+    )))]
+
+    const SYS_SETRESGID: libc::c_long = libc::SYS_setresgid;
+    const SYS_SETRESUID: libc::c_long = libc::SYS_setresuid;
+    const SYS_SETGROUPS: libc::c_long = libc::SYS_setgroups;
+}
+
 fn do_set_ids(
     uid: Option<libc::uid_t>,
     gid: Option<libc::gid_t>,
@@ -64,19 +95,19 @@ fn do_set_ids(
 ) -> io::Result<()> {
     unsafe {
         if let Some(gid) = gid {
-            if libc::syscall(libc::SYS_setresgid, gid, gid, gid) < 0 {
+            if libc::syscall(SYS_SETRESGID, gid, gid, gid) < 0 {
                 return Err(io::Error::last_os_error());
             }
         }
 
         if let Some(groups) = groups {
-            if libc::syscall(libc::SYS_setgroups, groups.len(), groups.as_ptr()) < 0 {
+            if libc::syscall(SYS_SETGROUPS, groups.len(), groups.as_ptr()) < 0 {
                 return Err(io::Error::last_os_error());
             }
         }
 
         if let Some(uid) = uid {
-            if libc::syscall(libc::SYS_setresuid, uid, uid, uid) < 0 {
+            if libc::syscall(SYS_SETRESUID, uid, uid, uid) < 0 {
                 return Err(io::Error::last_os_error());
             }
         }
