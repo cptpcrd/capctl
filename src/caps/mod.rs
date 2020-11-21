@@ -4,6 +4,7 @@ mod cap_text;
 mod capset;
 mod capstate;
 mod helpers;
+mod high;
 
 #[cfg(feature = "serde")]
 mod serde_impl;
@@ -23,6 +24,7 @@ pub mod bounding;
 pub use capset::{CapSet, CapSetIterator};
 pub use capstate::{CapState, ParseCapStateError};
 pub use helpers::cap_set_ids;
+pub use high::CapSetType;
 
 /// An enum representing all of the possible Linux capabilities.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
