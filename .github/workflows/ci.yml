@@ -111,3 +111,4 @@ jobs:
           OS: ${{ matrix.os }}
           TARGET: ${{ matrix.target }}
           TOOLCHAIN: ${{ matrix.toolchain }}
+          FEATURES: ${{ matrix.features }}
