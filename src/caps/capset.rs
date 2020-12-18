@@ -620,9 +620,10 @@ mod tests {
         assert_eq!(capset!(Cap::CHOWN), CapSet::from_iter(vec![Cap::CHOWN]));
         assert_eq!(capset!(Cap::CHOWN,), CapSet::from_iter(vec![Cap::CHOWN]));
 
-        let cap = Cap::CHOWN;
-        assert_eq!(capset!(cap), CapSet::from_iter(vec![cap]));
-        assert_eq!(capset!(cap,), CapSet::from_iter(vec![cap]));
+        for cap in Cap::iter() {
+            assert_eq!(capset!(cap), CapSet::from_iter(vec![cap]));
+            assert_eq!(capset!(cap,), CapSet::from_iter(vec![cap]));
+        }
 
         assert_eq!(
             capset!(Cap::CHOWN, Cap::SYSLOG),
