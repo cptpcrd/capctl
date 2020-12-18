@@ -254,24 +254,35 @@ impl fmt::Debug for CapSet {
 ///
 /// Examples:
 /// ```
-/// use std::iter::FromIterator;
-/// use capctl::capset;
-/// use capctl::caps::{Cap, CapSet};
-///
+/// # use std::iter::FromIterator;
+/// # use capctl::capset;
+/// # use capctl::caps::{Cap, CapSet};
 /// assert_eq!(capset!(), CapSet::empty());
 /// assert_eq!(capset!(Cap::CHOWN), CapSet::from_iter(vec![Cap::CHOWN]));
 /// assert_eq!(capset!(Cap::CHOWN, Cap::SYSLOG), CapSet::from_iter(vec![Cap::CHOWN, Cap::SYSLOG]));
+/// ```
+///
+/// Note that you cannot use raw integers, only `Cap` variants. For example, this is not allowed:
+///
+/// ```compile_fail
+/// # use capctl::capset;
+/// # use capctl::caps::{Cap, CapSet};
+/// assert_eq!(capset!(0), capset!(Cap::CHOWN));
 /// ```
 #[macro_export]
 macro_rules! capset {
     () => {
         $crate::caps::CapSet::empty()
     };
-    ($cap:expr$(, $caps:expr)*) => {
-        $crate::caps::CapSet::from_bitmask_truncate((1 << ($cap as $crate::caps::Cap as u8)) $(| (1 << ($caps as $crate::caps::Cap as u8)))*)
+
+    ($($caps:expr),*) => {
+        $crate::caps::CapSet::from_bitmask_truncate(
+            0 $(| (1u64 << ($caps as $crate::caps::Cap as u8)))*
+        )
     };
-    ($cap:expr, $($caps:expr,)*) => {
-        capset!($cap$(, $caps)*)
+
+    ($($caps:expr,)*) => {
+        $crate::capset!($($caps),*)
     };
 }
 
