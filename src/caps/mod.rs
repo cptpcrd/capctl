@@ -78,7 +78,7 @@ const LAST_CAP: Cap = Cap::CHECKPOINT_RESTORE;
 const CAP_MAX: u8 = LAST_CAP as u8;
 const NUM_CAPS: u8 = CAP_MAX + 1;
 // Shift to the left, then subtract one to get the lower bits filled with ones.
-const CAP_BITMASK: u64 = ((1 as u64) << NUM_CAPS) - 1;
+const CAP_BITMASK: u64 = (1u64 << NUM_CAPS) - 1;
 
 static CAP_NAMES: [&str; NUM_CAPS as usize] = [
     "CHOWN",
@@ -146,7 +146,7 @@ impl Cap {
         // cases)
         debug_assert!((self as u8) <= CAP_MAX);
 
-        (1 as u64) << (self as u8)
+        1u64 << (self as u8)
     }
 
     /// Checks whether the specified capability is supported on the current kernel.
@@ -295,7 +295,6 @@ impl Iterator for CapIter {
 impl ExactSizeIterator for CapIter {
     #[inline]
     fn len(&self) -> usize {
-        debug_assert!(self.i <= NUM_CAPS);
         (NUM_CAPS - self.i) as usize
     }
 }
