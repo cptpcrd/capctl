@@ -38,7 +38,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           target: ${{ matrix.target }}
       - name: Install 32-bit glibc build dependencies
-        run: sudo apt install gcc-multilib
+        run: sudo apt-get update && sudo apt-get -y install gcc-multilib
         if: matrix.os == 'ubuntu-latest' && matrix.target == 'i686-unknown-linux-gnu'
 
       - name: Build
