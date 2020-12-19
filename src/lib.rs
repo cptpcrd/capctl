@@ -6,6 +6,9 @@ mod externs;
 pub mod caps;
 pub mod prctl;
 
+pub use caps::*;
+pub use prctl::*;
+
 #[inline]
 unsafe fn raw_prctl(
     option: libc::c_int,
