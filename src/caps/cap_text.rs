@@ -112,23 +112,28 @@ pub enum ParseCapsError {
     BadFileEffective,
 }
 
-impl fmt::Display for ParseCapsError {
-    #[allow(deprecated)]
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use std::error::Error;
-
-        write!(f, "{}", self.description())
-    }
-}
-
-impl std::error::Error for ParseCapsError {
-    fn description(&self) -> &str {
+impl ParseCapsError {
+    fn desc(&self) -> &str {
         match *self {
             Self::InvalidFormat => "Invalid format",
             Self::UnknownCapability => "Unknown capability",
             Self::BadFileEffective => "Effective set must be either empty or same as permitted set",
         }
+    }
+}
+
+impl fmt::Display for ParseCapsError {
+    #[allow(deprecated)]
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.desc())
+    }
+}
+
+impl std::error::Error for ParseCapsError {
+    #[inline]
+    fn description(&self) -> &str {
+        self.desc()
     }
 }
 
