@@ -222,14 +222,16 @@ pub struct ParseCapError(());
 impl fmt::Debug for ParseCapError {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Unknown capability")
+        f.debug_struct("ParseCapError")
+            .field("message", &"Unknown capability")
+            .finish()
     }
 }
 
 impl fmt::Display for ParseCapError {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(self, f)
+        write!(f, "Unknown capability")
     }
 }
 
@@ -355,7 +357,10 @@ mod tests {
 
         // Make sure the string representations match
         assert_eq!(err.to_string(), "Unknown capability");
-        assert_eq!(format!("{:?}", err), "Unknown capability");
+        assert_eq!(
+            format!("{:?}", err),
+            "ParseCapError { message: \"Unknown capability\" }"
+        );
         assert_eq!(err.description(), "Unknown capability");
     }
 
