@@ -1,11 +1,11 @@
-use std::io;
-
+mod err;
 mod sys;
 
 pub mod caps;
 pub mod prctl;
 
 pub use caps::*;
+pub use err::*;
 pub use prctl::*;
 
 #[inline]
@@ -15,13 +15,13 @@ unsafe fn raw_prctl(
     arg3: libc::c_ulong,
     arg4: libc::c_ulong,
     arg5: libc::c_ulong,
-) -> io::Result<libc::c_int> {
+) -> Result<libc::c_int> {
     let res = libc::prctl(option, arg2, arg3, arg4, arg5);
 
     if res >= 0 {
         Ok(res)
     } else {
-        Err(io::Error::last_os_error())
+        Err(Error::last())
     }
 }
 

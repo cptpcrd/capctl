@@ -1,10 +1,8 @@
-use std::io;
-
 use super::{Cap, CapSet};
 
 /// Raise the given capability in the current thread's ambient capability set.
 #[inline]
-pub fn raise(cap: Cap) -> io::Result<()> {
+pub fn raise(cap: Cap) -> crate::Result<()> {
     unsafe {
         crate::raw_prctl(
             libc::PR_CAP_AMBIENT,
@@ -20,7 +18,7 @@ pub fn raise(cap: Cap) -> io::Result<()> {
 
 /// Lower the given capability in the current thread's ambient capability set.
 #[inline]
-pub fn lower(cap: Cap) -> io::Result<()> {
+pub fn lower(cap: Cap) -> crate::Result<()> {
     unsafe {
         crate::raw_prctl(
             libc::PR_CAP_AMBIENT,
@@ -59,7 +57,7 @@ pub fn is_set(cap: Cap) -> Option<bool> {
 
 /// Clear the current thread's ambient capability set.
 #[inline]
-pub fn clear() -> io::Result<()> {
+pub fn clear() -> crate::Result<()> {
     unsafe {
         crate::raw_prctl(
             libc::PR_CAP_AMBIENT,
@@ -145,20 +143,14 @@ mod tests {
             }
 
             for cap in !supported_caps {
-                assert_eq!(raise(cap).unwrap_err().raw_os_error(), Some(libc::EINVAL));
-                assert_eq!(lower(cap).unwrap_err().raw_os_error(), Some(libc::EINVAL));
+                assert_eq!(raise(cap).unwrap_err().code(), libc::EINVAL);
+                assert_eq!(lower(cap).unwrap_err().code(), libc::EINVAL);
             }
         } else {
             assert_eq!(probe(), None);
-            assert_eq!(
-                raise(Cap::CHOWN).unwrap_err().raw_os_error(),
-                Some(libc::EINVAL)
-            );
-            assert_eq!(
-                lower(Cap::CHOWN).unwrap_err().raw_os_error(),
-                Some(libc::EINVAL)
-            );
-            assert_eq!(clear().unwrap_err().raw_os_error(), Some(libc::EINVAL));
+            assert_eq!(raise(Cap::CHOWN).unwrap_err().code(), libc::EINVAL);
+            assert_eq!(lower(Cap::CHOWN).unwrap_err().code(), libc::EINVAL);
+            assert_eq!(clear().unwrap_err().code(), libc::EINVAL);
         }
     }
 }

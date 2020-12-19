@@ -1,5 +1,4 @@
 use std::ffi::{OsStr, OsString};
-use std::io;
 use std::os::unix::prelude::*;
 
 /// Set the name of the current thread.
@@ -9,13 +8,13 @@ use std::os::unix::prelude::*;
 /// (Note: Other documentation regarding Linux capabilities says that the maximum length is 16
 /// bytes; that value includes the terminating NUL byte at the end of C strings.)
 #[inline]
-pub fn set_name<N: AsRef<OsStr>>(name: N) -> io::Result<()> {
+pub fn set_name<N: AsRef<OsStr>>(name: N) -> crate::Result<()> {
     raw_set_name(name.as_ref().as_bytes())
 }
 
-fn raw_set_name(name: &[u8]) -> io::Result<()> {
+fn raw_set_name(name: &[u8]) -> crate::Result<()> {
     if name.contains(&0) {
-        return Err(io::Error::from_raw_os_error(libc::EINVAL));
+        return Err(crate::Error::from_code(libc::EINVAL));
     }
 
     let mut buf = [0; 16];
@@ -33,7 +32,7 @@ fn raw_set_name(name: &[u8]) -> io::Result<()> {
 }
 
 /// Get the name of the current thread.
-pub fn get_name() -> io::Result<OsString> {
+pub fn get_name() -> crate::Result<OsString> {
     let mut name_vec = vec![0; 16];
     unsafe {
         crate::raw_prctl(
@@ -54,7 +53,7 @@ pub fn get_name() -> io::Result<OsString> {
 ///
 /// See [`set_no_new_privs()`](./fn.set_no_new_privs.html) for more details.
 #[inline]
-pub fn get_no_new_privs() -> io::Result<bool> {
+pub fn get_no_new_privs() -> crate::Result<bool> {
     let res = unsafe { crate::raw_prctl(libc::PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0) }?;
 
     Ok(res != 0)
@@ -67,7 +66,7 @@ pub fn get_no_new_privs() -> io::Result<bool> {
 ///
 /// Once this is enabled, it cannot be unset.
 #[inline]
-pub fn set_no_new_privs() -> io::Result<()> {
+pub fn set_no_new_privs() -> crate::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) }?;
 
     Ok(())
@@ -77,7 +76,7 @@ pub fn set_no_new_privs() -> io::Result<()> {
 ///
 /// See [`set_keepcaps()`](./fn.set_keepcaps.html) for more details.
 #[inline]
-pub fn get_keepcaps() -> io::Result<bool> {
+pub fn get_keepcaps() -> crate::Result<bool> {
     let res = unsafe { crate::raw_prctl(libc::PR_GET_KEEPCAPS, 0, 0, 0, 0) }?;
 
     Ok(res != 0)
@@ -90,7 +89,7 @@ pub fn get_keepcaps() -> io::Result<bool> {
 ///
 /// This flag is always cleared on an `execve()`; see capabilities(7) for more details.
 #[inline]
-pub fn set_keepcaps(keep: bool) -> io::Result<()> {
+pub fn set_keepcaps(keep: bool) -> crate::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_SET_KEEPCAPS, keep as libc::c_ulong, 0, 0, 0) }?;
 
     Ok(())
@@ -100,7 +99,7 @@ pub fn set_keepcaps(keep: bool) -> io::Result<()> {
 ///
 /// See [`set_dumpable()`](./fn.set_dumpable.html) for more details.
 #[inline]
-pub fn get_dumpable() -> io::Result<bool> {
+pub fn get_dumpable() -> crate::Result<bool> {
     let res = unsafe { crate::raw_prctl(libc::PR_GET_DUMPABLE, 0, 0, 0, 0) }?;
 
     Ok(res != 0)
@@ -112,7 +111,7 @@ pub fn get_dumpable() -> io::Result<bool> {
 /// would make it perform a core dump. It also restricts which processes can be attached with
 /// `ptrace()`.
 #[inline]
-pub fn set_dumpable(dumpable: bool) -> io::Result<()> {
+pub fn set_dumpable(dumpable: bool) -> crate::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_SET_DUMPABLE, dumpable as libc::c_ulong, 0, 0, 0) }?;
 
     Ok(())
@@ -126,7 +125,7 @@ pub fn set_dumpable(dumpable: bool) -> io::Result<()> {
 /// This is useful for process managers that need to be informed when any of their descendants
 /// (possibly processes that used the double-`fork()` trick to become daemons) die.
 #[inline]
-pub fn set_subreaper(flag: bool) -> io::Result<()> {
+pub fn set_subreaper(flag: bool) -> crate::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_SET_CHILD_SUBREAPER, flag as libc::c_ulong, 0, 0, 0) }?;
 
     Ok(())
@@ -136,7 +135,7 @@ pub fn set_subreaper(flag: bool) -> io::Result<()> {
 ///
 /// See [`set_subreaper()`](./fn.set_subreaper.html) for more detailss.
 #[inline]
-pub fn get_subreaper() -> io::Result<bool> {
+pub fn get_subreaper() -> crate::Result<bool> {
     let mut res = 0;
 
     unsafe {
@@ -159,7 +158,7 @@ pub fn get_subreaper() -> io::Result<bool> {
 ///
 /// Specifying `None` is equivalent to specifying `Some(0)`; both clear the parent-death signal.
 #[inline]
-pub fn set_pdeathsig(sig: Option<libc::c_int>) -> io::Result<()> {
+pub fn set_pdeathsig(sig: Option<libc::c_int>) -> crate::Result<()> {
     unsafe {
         crate::raw_prctl(
             libc::PR_SET_PDEATHSIG,
@@ -178,7 +177,7 @@ pub fn set_pdeathsig(sig: Option<libc::c_int>) -> io::Result<()> {
 /// This returns `Ok(None)` if the process's parent-death signal is cleared, and `Ok(Some(sig))`
 /// otherwise.
 #[inline]
-pub fn get_pdeathsig() -> io::Result<Option<libc::c_int>> {
+pub fn get_pdeathsig() -> crate::Result<Option<libc::c_int>> {
     let mut sig = 0;
 
     unsafe {
@@ -246,7 +245,7 @@ bitflags::bitflags! {
 /// Get the "securebits" flags of the current thread.
 ///
 /// See [`set_securebits()`](./fn.set_securebits.html) for more details.
-pub fn get_securebits() -> io::Result<Secbits> {
+pub fn get_securebits() -> crate::Result<Secbits> {
     let f = unsafe { crate::raw_prctl(libc::PR_GET_SECUREBITS, 0, 0, 0, 0) }?;
 
     Ok(Secbits::from_bits_truncate(f as libc::c_ulong))
@@ -258,7 +257,7 @@ pub fn get_securebits() -> io::Result<Secbits> {
 /// [`Secbits`](struct.Secbits.html) and capabilities(7) for more details.
 ///
 /// Note: Modifying the securebits with this function requires the CAP_SETPCAP capability.
-pub fn set_securebits(flags: Secbits) -> io::Result<()> {
+pub fn set_securebits(flags: Secbits) -> crate::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_SET_SECUREBITS, flags.bits(), 0, 0, 0) }?;
 
     Ok(())
@@ -270,7 +269,7 @@ pub fn set_securebits(flags: Secbits) -> io::Result<()> {
 /// seccomp filter mode (and the `prctl()` syscall with the given arguments is allowed by the
 /// filters) then this function returns `true`; if it is in strict computing mode then it will be
 /// sent a SIGKILL signal.
-pub fn get_seccomp() -> io::Result<bool> {
+pub fn get_seccomp() -> crate::Result<bool> {
     let res = unsafe { crate::raw_prctl(libc::PR_GET_SECCOMP, 0, 0, 0, 0) }?;
 
     Ok(res != 0)
@@ -280,7 +279,7 @@ pub fn get_seccomp() -> io::Result<bool> {
 ///
 /// After this call, any syscalls except `read()`, `write()`, `_exit()`, and `sigreturn()` will
 /// cause the thread to be terminated with SIGKILL.
-pub fn set_seccomp_strict() -> io::Result<()> {
+pub fn set_seccomp_strict() -> crate::Result<()> {
     unsafe {
         crate::raw_prctl(
             libc::PR_SET_SECCOMP,
@@ -309,11 +308,11 @@ pub fn set_seccomp_strict() -> io::Result<()> {
 /// If you *really* need to handle values in this range, try
 /// `std::fs::read_to_string("/proc/self/timerslack_ns")?.trim().parse::<libc::c_ulong>().unwrap()`
 /// (only works on Linux 4.6+).
-pub fn get_timerslack() -> io::Result<libc::c_ulong> {
+pub fn get_timerslack() -> crate::Result<libc::c_ulong> {
     let res = unsafe { libc::syscall(libc::SYS_prctl, libc::PR_GET_TIMERSLACK, 0, 0, 0) };
 
     if res == -1 {
-        Err(io::Error::last_os_error())
+        Err(crate::Error::last())
     } else {
         Ok(res as libc::c_ulong)
     }
@@ -326,7 +325,7 @@ pub fn get_timerslack() -> io::Result<libc::c_ulong> {
 ///
 /// Note: Passing a value of 0 will reset the current timer slack value to the "default" timer
 /// slack value (which is inherited from the parent). Again, prctl(2) contains more information.
-pub fn set_timerslack(new_slack: libc::c_ulong) -> io::Result<()> {
+pub fn set_timerslack(new_slack: libc::c_ulong) -> crate::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_SET_TIMERSLACK, new_slack, 0, 0, 0) }?;
 
     Ok(())
@@ -383,10 +382,7 @@ mod tests {
         set_pdeathsig(Some(libc::SIGCHLD)).unwrap();
         assert_eq!(get_pdeathsig().unwrap(), Some(libc::SIGCHLD));
 
-        assert_eq!(
-            set_pdeathsig(Some(-1)).unwrap_err().raw_os_error(),
-            Some(libc::EINVAL)
-        );
+        assert_eq!(set_pdeathsig(Some(-1)).unwrap_err().code(), libc::EINVAL);
 
         set_pdeathsig(orig_pdeathsig).unwrap();
     }
@@ -409,10 +405,7 @@ mod tests {
         set_name("capctl-very-very-long").unwrap();
         assert_eq!(get_name().unwrap(), "capctl-very-ver");
 
-        assert_eq!(
-            set_name("a\0").unwrap_err().raw_os_error(),
-            Some(libc::EINVAL)
-        );
+        assert_eq!(set_name("a\0").unwrap_err().code(), libc::EINVAL);
 
         set_name(&orig_name).unwrap();
         assert_eq!(get_name().unwrap(), orig_name);
@@ -441,8 +434,8 @@ mod tests {
             assert_eq!(
                 set_securebits(get_securebits().unwrap())
                     .unwrap_err()
-                    .raw_os_error(),
-                Some(libc::EPERM)
+                    .code(),
+                libc::EPERM
             );
         }
     }
@@ -457,7 +450,7 @@ mod tests {
     #[test]
     fn test_set_seccomp_strict() {
         match unsafe { libc::fork() } {
-            -1 => panic!("{}", std::io::Error::last_os_error()),
+            -1 => panic!("{}", crate::Error::last()),
             0 => {
                 set_seccomp_strict().unwrap();
 
@@ -469,7 +462,7 @@ mod tests {
             pid => {
                 let mut wstatus = 0;
                 if unsafe { libc::waitpid(pid, &mut wstatus, 0) } != pid {
-                    panic!("{}", std::io::Error::last_os_error());
+                    panic!("{}", crate::Error::last());
                 }
 
                 assert!(libc::WIFEXITED(wstatus));

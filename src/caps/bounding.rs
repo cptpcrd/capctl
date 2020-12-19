@@ -1,10 +1,8 @@
-use std::io;
-
 use super::{Cap, CapSet};
 
 /// Drop the given capability from the current thread's bounding capability set.
 #[inline]
-pub fn drop(cap: Cap) -> io::Result<()> {
+pub fn drop(cap: Cap) -> crate::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_CAPBSET_DROP, cap as libc::c_ulong, 0, 0, 0) }?;
 
     Ok(())
@@ -72,8 +70,8 @@ mod tests {
             drop(crate::caps::Cap::SETPCAP).unwrap();
         } else {
             assert_eq!(
-                drop(crate::caps::Cap::SETPCAP).unwrap_err().raw_os_error(),
-                Some(libc::EPERM)
+                drop(crate::caps::Cap::SETPCAP).unwrap_err().code(),
+                libc::EPERM
             );
         }
     }

@@ -1,5 +1,3 @@
-use std::io;
-
 use super::{Cap, CapState};
 
 /// Set the current thread's UID/GID/supplementary groups while preserving permitted capabilities.
@@ -27,7 +25,7 @@ pub fn cap_set_ids(
     uid: Option<libc::uid_t>,
     gid: Option<libc::gid_t>,
     groups: Option<&[libc::gid_t]>,
-) -> io::Result<()> {
+) -> crate::Result<()> {
     let mut capstate = CapState::get_current()?;
     let orig_effective = capstate.effective;
 
@@ -92,23 +90,23 @@ fn do_set_ids(
     uid: Option<libc::uid_t>,
     gid: Option<libc::gid_t>,
     groups: Option<&[libc::gid_t]>,
-) -> io::Result<()> {
+) -> crate::Result<()> {
     unsafe {
         if let Some(gid) = gid {
             if libc::syscall(SYS_SETRESGID, gid, gid, gid) < 0 {
-                return Err(io::Error::last_os_error());
+                return Err(crate::Error::last());
             }
         }
 
         if let Some(groups) = groups {
             if libc::syscall(SYS_SETGROUPS, groups.len(), groups.as_ptr()) < 0 {
-                return Err(io::Error::last_os_error());
+                return Err(crate::Error::last());
             }
         }
 
         if let Some(uid) = uid {
             if libc::syscall(SYS_SETRESUID, uid, uid, uid) < 0 {
-                return Err(io::Error::last_os_error());
+                return Err(crate::Error::last());
             }
         }
     }
@@ -144,10 +142,8 @@ mod tests {
             cap_set_ids(Some(uid), Some(gid), None).unwrap();
         } else {
             assert_eq!(
-                cap_set_ids(Some(uid), Some(gid), None)
-                    .unwrap_err()
-                    .raw_os_error(),
-                Some(libc::EPERM)
+                cap_set_ids(Some(uid), Some(gid), None).unwrap_err().code(),
+                libc::EPERM
             );
         }
     }

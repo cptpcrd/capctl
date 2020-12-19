@@ -27,7 +27,7 @@ A pure-Rust interface to `prctl()` and Linux capabilities.
 
 1. `prctl` concentrates on the `prctl()` system call, not Linux capabilities in general. As a result, its interface to Linux capabilities is an afterthought and incomplete.
 
-2. `prctl` returns raw `errno` values when an error occurs. This crate returns `io::Error`s, which are easier to work with (and can be converted to raw error numbers if possible).
+2. `prctl` returns raw `errno` values when an error occurs. This crate returns a friendlier custom error type that can be converted into an `io::Error`.
 
 3. Most importantly, `prctl` fails to recognize that, as the man page explains, `prctl()` is a very low-level syscall, and it should be used cautiously.
 

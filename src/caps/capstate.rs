@@ -1,5 +1,4 @@
 use std::fmt;
-use std::io;
 
 use crate::sys;
 
@@ -37,14 +36,14 @@ impl CapState {
     ///
     /// This is equivalent to `CapState::get_for_pid(0)`.
     #[inline]
-    pub fn get_current() -> io::Result<Self> {
+    pub fn get_current() -> crate::Result<Self> {
         Self::get_for_pid(0)
     }
 
     /// Get the capability state of the process (or thread) with the given PID (or TID).
     ///
     /// If `pid` is 0, this method gets the capability state of the current thread.
-    pub fn get_for_pid(pid: libc::pid_t) -> io::Result<Self> {
+    pub fn get_for_pid(pid: libc::pid_t) -> crate::Result<Self> {
         let mut header = sys::cap_user_header_t {
             version: sys::_LINUX_CAPABILITY_VERSION_3,
             pid: pid as libc::c_int,
@@ -57,7 +56,7 @@ impl CapState {
         }; 2];
 
         if unsafe { sys::capget(&mut header, raw_dat.as_mut_ptr()) } < 0 {
-            return Err(io::Error::last_os_error());
+            return Err(crate::Error::last());
         }
 
         Ok(Self {
@@ -68,7 +67,7 @@ impl CapState {
     }
 
     /// Set the current capability state to the state represented by this object.
-    pub fn set_current(&self) -> io::Result<()> {
+    pub fn set_current(&self) -> crate::Result<()> {
         let mut header = sys::cap_user_header_t {
             version: sys::_LINUX_CAPABILITY_VERSION_3,
             pid: 0,
@@ -92,7 +91,7 @@ impl CapState {
         ];
 
         if unsafe { sys::capset(&mut header, raw_dat.as_ptr()) } < 0 {
-            return Err(io::Error::last_os_error());
+            return Err(crate::Error::last());
         }
 
         Ok(())
@@ -168,15 +167,10 @@ mod tests {
 
     #[test]
     fn test_capstate_get_bad_pid() {
+        assert_eq!(CapState::get_for_pid(-1).unwrap_err().code(), libc::EINVAL);
         assert_eq!(
-            CapState::get_for_pid(-1).unwrap_err().raw_os_error(),
-            Some(libc::EINVAL)
-        );
-        assert_eq!(
-            CapState::get_for_pid(libc::pid_t::MAX)
-                .unwrap_err()
-                .raw_os_error(),
-            Some(libc::ESRCH)
+            CapState::get_for_pid(libc::pid_t::MAX).unwrap_err().code(),
+            libc::ESRCH
         );
     }
 
