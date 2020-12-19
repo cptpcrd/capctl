@@ -1,6 +1,8 @@
 use std::fmt;
 use std::io;
 
+use crate::sys;
+
 use super::cap_text::{caps_from_text, caps_to_text, ParseCapsError};
 use super::CapSet;
 
@@ -43,18 +45,18 @@ impl CapState {
     ///
     /// If `pid` is 0, this method gets the capability state of the current thread.
     pub fn get_for_pid(pid: libc::pid_t) -> io::Result<Self> {
-        let mut header = crate::externs::cap_user_header_t {
-            version: crate::constants::_LINUX_CAPABILITY_VERSION_3,
+        let mut header = sys::cap_user_header_t {
+            version: sys::_LINUX_CAPABILITY_VERSION_3,
             pid: pid as libc::c_int,
         };
 
-        let mut raw_dat = [crate::externs::cap_user_data_t {
+        let mut raw_dat = [sys::cap_user_data_t {
             effective: 0,
             permitted: 0,
             inheritable: 0,
         }; 2];
 
-        if unsafe { crate::externs::capget(&mut header, raw_dat.as_mut_ptr()) } < 0 {
+        if unsafe { sys::capget(&mut header, raw_dat.as_mut_ptr()) } < 0 {
             return Err(io::Error::last_os_error());
         }
 
@@ -67,8 +69,8 @@ impl CapState {
 
     /// Set the current capability state to the state represented by this object.
     pub fn set_current(&self) -> io::Result<()> {
-        let mut header = crate::externs::cap_user_header_t {
-            version: crate::constants::_LINUX_CAPABILITY_VERSION_3,
+        let mut header = sys::cap_user_header_t {
+            version: sys::_LINUX_CAPABILITY_VERSION_3,
             pid: 0,
         };
 
@@ -77,19 +79,19 @@ impl CapState {
         let inheritable = self.inheritable.bits;
 
         let raw_dat = [
-            crate::externs::cap_user_data_t {
+            sys::cap_user_data_t {
                 effective: effective as u32,
                 permitted: permitted as u32,
                 inheritable: inheritable as u32,
             },
-            crate::externs::cap_user_data_t {
+            sys::cap_user_data_t {
                 effective: (effective >> 32) as u32,
                 permitted: (permitted >> 32) as u32,
                 inheritable: (inheritable >> 32) as u32,
             },
         ];
 
-        if unsafe { crate::externs::capset(&mut header, raw_dat.as_ptr()) } < 0 {
+        if unsafe { sys::capset(&mut header, raw_dat.as_ptr()) } < 0 {
             return Err(io::Error::last_os_error());
         }
 

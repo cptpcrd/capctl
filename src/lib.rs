@@ -1,7 +1,6 @@
 use std::io;
 
-mod constants;
-mod externs;
+mod sys;
 
 pub mod caps;
 pub mod prctl;

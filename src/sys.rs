@@ -1,3 +1,23 @@
+extern "C" {
+    pub fn capget(hdrp: *mut cap_user_header_t, datap: *mut cap_user_data_t) -> libc::c_int;
+
+    pub fn capset(hdrp: *mut cap_user_header_t, datap: *const cap_user_data_t) -> libc::c_int;
+}
+
+#[repr(C)]
+pub struct cap_user_header_t {
+    pub version: u32,
+    pub pid: libc::c_int,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct cap_user_data_t {
+    pub effective: u32,
+    pub permitted: u32,
+    pub inheritable: u32,
+}
+
 // WARNING: Updating to newer versions may require significant
 // code changes to caps/capstate.rs
 pub const _LINUX_CAPABILITY_VERSION_3: u32 = 0x2008_0522;

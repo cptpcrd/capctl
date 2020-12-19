@@ -4,6 +4,8 @@ use std::fmt;
 use std::io;
 use std::os::unix::prelude::*;
 
+use crate::sys;
+
 use super::cap_text::{caps_from_text, caps_to_text, ParseCapsError};
 use super::{CapSet, CapState};
 
@@ -56,14 +58,14 @@ impl FileCaps {
     /// attached, this method returns `Ok(None)`. Otherwise, this method returns
     /// `Ok(Some(<capabilities>))`.
     pub fn get_for_file<P: AsRef<OsStr>>(path: P) -> io::Result<Option<Self>> {
-        let mut data = [0; crate::constants::XATTR_CAPS_MAX_SIZE];
+        let mut data = [0; sys::XATTR_CAPS_MAX_SIZE];
 
         let path = CString::new(path.as_ref().as_bytes())?;
 
         let ret = unsafe {
             libc::getxattr(
                 path.as_ptr(),
-                crate::constants::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
+                sys::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
                 data.as_mut_ptr() as *mut libc::c_void,
                 data.len(),
             )
@@ -76,12 +78,12 @@ impl FileCaps {
     ///
     /// See [`get_for_file()`](#method.get_for_file) for more information.
     pub fn get_for_fd(fd: RawFd) -> io::Result<Option<Self>> {
-        let mut data = [0; crate::constants::XATTR_CAPS_MAX_SIZE];
+        let mut data = [0; sys::XATTR_CAPS_MAX_SIZE];
 
         let ret = unsafe {
             libc::fgetxattr(
                 fd,
-                crate::constants::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
+                sys::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
                 data.as_mut_ptr() as *mut libc::c_void,
                 data.len(),
             )
@@ -120,14 +122,12 @@ impl FileCaps {
         }
 
         let magic = u32::from_le_bytes(attrs[0..4].try_into().unwrap());
-        let version = magic & crate::constants::VFS_CAP_REVISION_MASK;
-        let flags = magic & crate::constants::VFS_CAP_FLAGS_MASK;
+        let version = magic & sys::VFS_CAP_REVISION_MASK;
+        let flags = magic & sys::VFS_CAP_FLAGS_MASK;
 
-        let effective = (flags & crate::constants::VFS_CAP_FLAGS_EFFECTIVE) != 0;
+        let effective = (flags & sys::VFS_CAP_FLAGS_EFFECTIVE) != 0;
 
-        if version == crate::constants::VFS_CAP_REVISION_2
-            && len == crate::constants::XATTR_CAPS_SZ_2
-        {
+        if version == sys::VFS_CAP_REVISION_2 && len == sys::XATTR_CAPS_SZ_2 {
             Ok(FileCaps {
                 effective,
                 permitted: CapSet::from_bitmasks_u32(
@@ -140,9 +140,7 @@ impl FileCaps {
                 ),
                 rootid: None,
             })
-        } else if version == crate::constants::VFS_CAP_REVISION_3
-            && len == crate::constants::XATTR_CAPS_SZ_3
-        {
+        } else if version == sys::VFS_CAP_REVISION_3 && len == sys::XATTR_CAPS_SZ_3 {
             Ok(FileCaps {
                 effective,
                 permitted: CapSet::from_bitmasks_u32(
@@ -155,9 +153,7 @@ impl FileCaps {
                 ),
                 rootid: Some(u32::from_le_bytes(attrs[20..24].try_into().unwrap())),
             })
-        } else if version == crate::constants::VFS_CAP_REVISION_1
-            && len == crate::constants::XATTR_CAPS_SZ_1
-        {
+        } else if version == sys::VFS_CAP_REVISION_1 && len == sys::XATTR_CAPS_SZ_1 {
             Ok(FileCaps {
                 effective,
                 permitted: CapSet::from_bitmask_truncate(u32::from_le_bytes(
@@ -179,7 +175,7 @@ impl FileCaps {
     pub fn set_for_file<P: AsRef<OsStr>>(&self, path: P) -> io::Result<()> {
         let path = CString::new(path.as_ref().as_bytes())?;
 
-        let mut buf = [0u8; crate::constants::XATTR_CAPS_MAX_SIZE];
+        let mut buf = [0u8; sys::XATTR_CAPS_MAX_SIZE];
         let len = self.pack_into(&mut buf);
 
         debug_assert!(len <= buf.len());
@@ -187,7 +183,7 @@ impl FileCaps {
         if unsafe {
             libc::setxattr(
                 path.as_ptr(),
-                crate::constants::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
+                sys::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
                 buf.as_ptr() as *const libc::c_void,
                 len,
                 0,
@@ -204,7 +200,7 @@ impl FileCaps {
     /// to the state represented by this object.
     #[inline]
     pub fn set_for_fd(&self, fd: RawFd) -> io::Result<()> {
-        let mut buf = [0u8; crate::constants::XATTR_CAPS_MAX_SIZE];
+        let mut buf = [0u8; sys::XATTR_CAPS_MAX_SIZE];
         let len = self.pack_into(&mut buf);
 
         debug_assert!(len <= buf.len());
@@ -212,7 +208,7 @@ impl FileCaps {
         if unsafe {
             libc::fsetxattr(
                 fd,
-                crate::constants::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
+                sys::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
                 buf.as_ptr() as *const libc::c_void,
                 len,
                 0,
@@ -227,13 +223,13 @@ impl FileCaps {
 
     fn pack_into(&self, buf: &mut [u8]) -> usize {
         let mut magic = if self.rootid.is_some() {
-            crate::constants::VFS_CAP_REVISION_3
+            sys::VFS_CAP_REVISION_3
         } else {
-            crate::constants::VFS_CAP_REVISION_2
+            sys::VFS_CAP_REVISION_2
         };
 
         if self.effective {
-            magic |= crate::constants::VFS_CAP_FLAGS_EFFECTIVE;
+            magic |= sys::VFS_CAP_FLAGS_EFFECTIVE;
         }
 
         let mut len = 20;
@@ -277,7 +273,7 @@ impl FileCaps {
     /// [`unpack_attrs()`]: #method.unpack_attrs
     #[inline]
     pub fn pack_attrs(&self) -> Vec<u8> {
-        let mut buf = vec![0u8; crate::constants::XATTR_CAPS_MAX_SIZE];
+        let mut buf = vec![0u8; sys::XATTR_CAPS_MAX_SIZE];
 
         let len = self.pack_into(&mut buf);
         buf.truncate(len);
@@ -293,7 +289,7 @@ impl FileCaps {
         if unsafe {
             libc::removexattr(
                 path.as_ptr(),
-                crate::constants::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
+                sys::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
             )
         } < 0
         {
@@ -306,12 +302,8 @@ impl FileCaps {
     /// Remove the file capabilities attached to the open file identified by `fd`.
     #[inline]
     pub fn remove_for_fd(fd: RawFd) -> io::Result<()> {
-        if unsafe {
-            libc::fremovexattr(
-                fd,
-                crate::constants::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char,
-            )
-        } < 0
+        if unsafe { libc::fremovexattr(fd, sys::XATTR_NAME_CAPS.as_ptr() as *const libc::c_char) }
+            < 0
         {
             Err(io::Error::last_os_error())
         } else {
