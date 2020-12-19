@@ -21,7 +21,7 @@ struct CapSetVisitor;
 impl<'de> Visitor<'de> for CapSetVisitor {
     type Value = CapSet;
 
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(formatter, "a set of Linux capability names")
     }
 

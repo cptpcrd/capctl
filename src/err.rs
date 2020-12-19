@@ -30,9 +30,25 @@ impl Error {
     }
 
     fn strerror(&self) -> &'static str {
-        unsafe { std::ffi::CStr::from_ptr(libc::strerror(self.0)) }
-            .to_str()
-            .unwrap()
+        let ptr = unsafe { libc::strerror(self.0) };
+
+        debug_assert!(!ptr.is_null());
+
+        #[cfg(feature = "std")]
+        return unsafe { std::ffi::CStr::from_ptr(ptr) }.to_str().unwrap();
+
+        #[cfg(not(feature = "std"))]
+        {
+            let mut len = 0;
+            while unsafe { *ptr.add(len) } != 0 {
+                len += 1;
+            }
+
+            return core::str::from_utf8(unsafe {
+                core::slice::from_raw_parts(ptr as *const u8, len)
+            })
+            .unwrap();
+        }
     }
 }
 
@@ -52,6 +68,7 @@ impl fmt::Debug for Error {
     }
 }
 
+#[cfg(feature = "std")]
 impl std::error::Error for Error {
     #[inline]
     fn description(&self) -> &str {
@@ -59,6 +76,8 @@ impl std::error::Error for Error {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg(feature = "std")]
 impl From<Error> for std::io::Error {
     #[inline]
     fn from(e: Error) -> Self {
@@ -93,6 +112,7 @@ mod tests {
     fn test_strerror() {
         assert_eq!(Error::from_code(libc::EISDIR).strerror(), "Is a directory");
 
+        #[cfg(feature = "std")]
         #[allow(deprecated)]
         {
             use std::error::Error;
@@ -103,6 +123,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn test_display() {
         assert_eq!(
@@ -111,6 +132,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn test_debug() {
         assert_eq!(
@@ -122,6 +144,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn test_from_error() {
         assert_eq!(

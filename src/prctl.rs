@@ -1,17 +1,20 @@
-use std::ffi::{OsStr, OsString};
-use std::os::unix::prelude::*;
-
 /// Set the name of the current thread.
 ///
 /// If the given name is longer than 15 bytes, it will be truncated to the first 15 bytes.
 ///
 /// (Note: Other documentation regarding Linux capabilities says that the maximum length is 16
 /// bytes; that value includes the terminating NUL byte at the end of C strings.)
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg(feature = "std")]
 #[inline]
-pub fn set_name<N: AsRef<OsStr>>(name: N) -> crate::Result<()> {
+pub fn set_name<N: AsRef<std::ffi::OsStr>>(name: N) -> crate::Result<()> {
+    use std::os::unix::ffi::OsStrExt;
+
     raw_set_name(name.as_ref().as_bytes())
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg(feature = "std")]
 fn raw_set_name(name: &[u8]) -> crate::Result<()> {
     if name.contains(&0) {
         return Err(crate::Error::from_code(libc::EINVAL));
@@ -32,7 +35,11 @@ fn raw_set_name(name: &[u8]) -> crate::Result<()> {
 }
 
 /// Get the name of the current thread.
-pub fn get_name() -> crate::Result<OsString> {
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg(feature = "std")]
+pub fn get_name() -> crate::Result<std::ffi::OsString> {
+    use std::os::unix::ffi::OsStringExt;
+
     let mut name_vec = vec![0; 16];
     unsafe {
         crate::raw_prctl(
@@ -46,7 +53,7 @@ pub fn get_name() -> crate::Result<OsString> {
 
     name_vec.truncate(name_vec.iter().position(|x| *x == 0).unwrap());
 
-    Ok(OsString::from_vec(name_vec))
+    Ok(std::ffi::OsString::from_vec(name_vec))
 }
 
 /// Get the no-new-privileges flag of the current thread.
@@ -395,6 +402,7 @@ mod tests {
         assert!(get_dumpable().unwrap());
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn test_name() {
         let orig_name = get_name().unwrap();
@@ -471,6 +479,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn test_timerslack() {
         let orig_timerslack = get_timerslack().unwrap();

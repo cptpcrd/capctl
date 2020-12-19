@@ -1,4 +1,4 @@
-use std::fmt;
+use core::fmt;
 
 use crate::sys;
 
@@ -104,7 +104,7 @@ impl fmt::Display for CapState {
     }
 }
 
-impl std::str::FromStr for CapState {
+impl core::str::FromStr for CapState {
     type Err = ParseCapStateError;
 
     #[inline]
@@ -124,6 +124,8 @@ impl fmt::Display for ParseCapStateError {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg(feature = "std")]
 impl std::error::Error for ParseCapStateError {
     #[allow(deprecated)]
     #[inline]
@@ -136,8 +138,7 @@ impl std::error::Error for ParseCapStateError {
 mod tests {
     use super::*;
 
-    use std::error::Error;
-    use std::str::FromStr;
+    use core::str::FromStr;
 
     use crate::caps::Cap;
     use crate::capset;
@@ -160,7 +161,7 @@ mod tests {
         assert_eq!(state, CapState::get_for_pid(0).unwrap());
         assert_eq!(
             state,
-            CapState::get_for_pid(std::process::id() as libc::pid_t).unwrap()
+            CapState::get_for_pid(unsafe { libc::getpid() }).unwrap()
         );
         state.set_current().unwrap();
     }
@@ -187,13 +188,17 @@ mod tests {
             }
         );
 
+        #[cfg(feature = "std")]
         assert_eq!(
             CapState::from_str("cap_noexist+p").unwrap_err().to_string(),
             "Unknown capability"
         );
 
+        #[cfg(feature = "std")]
         #[allow(deprecated)]
         {
+            use std::error::Error;
+
             assert_eq!(
                 CapState::from_str("cap_noexist+p")
                     .unwrap_err()
@@ -203,6 +208,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn test_capstate_display() {
         // caps_to_text() has no tests in cap_text.rs, so we need to be rigorous

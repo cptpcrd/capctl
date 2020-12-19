@@ -12,13 +12,19 @@ keywords = ["prctl", "capabilities"]
 repository = "https://github.com/cptpcrd/capctl"
 
 [features]
-default = []
+default = ["std"]
+
+std = []
 
 [dependencies]
-libc = "0.2"
+libc = { version = "0.2", default-features = false }
 bitflags = "1.2"
 
-serde = { version = "1.0", features = ["derive"], optional = true }
+serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
 
 [dev-dependencies]
 serde_test = "1.0"
+
+[package.metadata.docs.rs]
+all-features = true
+rustc-args = ["--cfg", "docsrs"]

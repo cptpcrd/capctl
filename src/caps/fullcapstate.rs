@@ -7,6 +7,7 @@ use super::{ambient, bounding, CapSet, CapState};
 /// Represents the "full" capability state of a thread (i.e. the contents of all 5 capability
 /// sets and some additional information).
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub struct FullCapState {
@@ -55,9 +56,9 @@ impl FullCapState {
     /// If `pid` is 0, this method gets the capability state of the current thread.
     pub fn get_for_pid(pid: libc::pid_t) -> io::Result<Self> {
         let file_res = match pid.cmp(&0) {
-            std::cmp::Ordering::Less => return Err(io::Error::from_raw_os_error(libc::EINVAL)),
-            std::cmp::Ordering::Equal => fs::File::open("/proc/thread-self/status"),
-            std::cmp::Ordering::Greater => fs::File::open(format!("/proc/{}/status", pid)),
+            core::cmp::Ordering::Less => return Err(io::Error::from_raw_os_error(libc::EINVAL)),
+            core::cmp::Ordering::Equal => fs::File::open("/proc/thread-self/status"),
+            core::cmp::Ordering::Greater => fs::File::open(format!("/proc/{}/status", pid)),
         };
 
         let f = match file_res {

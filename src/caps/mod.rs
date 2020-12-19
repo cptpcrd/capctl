@@ -1,21 +1,27 @@
-use std::fmt;
+use core::fmt;
 
 mod cap_text;
 mod capset;
 mod capstate;
-mod file;
-mod fullcapstate;
 mod helpers;
 
 #[cfg(feature = "serde")]
 mod serde_impl;
 
+#[cfg(feature = "std")]
+mod file;
+#[cfg(feature = "std")]
+pub use file::{FileCaps, ParseFileCapsError};
+
+#[cfg(feature = "std")]
+mod fullcapstate;
+#[cfg(feature = "std")]
+pub use fullcapstate::FullCapState;
+
 pub mod ambient;
 pub mod bounding;
 pub use capset::{CapSet, CapSetIterator};
 pub use capstate::{CapState, ParseCapStateError};
-pub use file::{FileCaps, ParseFileCapsError};
-pub use fullcapstate::FullCapState;
 pub use helpers::cap_set_ids;
 
 /// An enum representing all of the possible Linux capabilities.
@@ -134,7 +140,7 @@ impl Cap {
     #[inline]
     fn from_u8(val: u8) -> Option<Self> {
         if val <= CAP_MAX {
-            Some(unsafe { std::mem::transmute(val) })
+            Some(unsafe { core::mem::transmute(val) })
         } else {
             None
         }
@@ -188,9 +194,13 @@ impl Cap {
 
         CapSet::from_bitmask_truncate((1 << (min + 1)) - 1)
     }
+
+    pub(crate) fn name(self) -> &'static str {
+        CAP_NAMES[self as usize]
+    }
 }
 
-impl std::str::FromStr for Cap {
+impl core::str::FromStr for Cap {
     type Err = ParseCapError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -235,6 +245,7 @@ impl fmt::Display for ParseCapError {
     }
 }
 
+#[cfg(feature = "std")]
 impl std::error::Error for ParseCapError {
     fn description(&self) -> &str {
         "Unknown capability"
@@ -301,11 +312,11 @@ impl ExactSizeIterator for CapIter {
     }
 }
 
-impl std::iter::FusedIterator for CapIter {}
+impl core::iter::FusedIterator for CapIter {}
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use core::str::FromStr;
 
     use super::*;
 
@@ -333,8 +344,10 @@ mod tests {
         assert!(Cap::from_str("CHOWN").is_err());
         assert!(Cap::from_str("CAP_NOEXIST").is_err());
 
+        #[cfg(feature = "std")]
         assert_eq!(Cap::CHOWN.to_string(), "CAP_CHOWN");
 
+        #[cfg(feature = "std")]
         for cap in Cap::iter() {
             let s = cap.to_string();
             assert_eq!(Cap::from_str(&s), Ok(cap));
@@ -343,6 +356,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "std")]
     #[allow(deprecated)]
     #[test]
     fn test_cap_string_error() {

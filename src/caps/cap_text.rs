@@ -1,4 +1,4 @@
-use std::fmt;
+use core::fmt;
 
 use crate::caps::{CapSet, CapState, NUM_CAPS};
 
@@ -130,6 +130,7 @@ impl fmt::Display for ParseCapsError {
     }
 }
 
+#[cfg(feature = "std")]
 impl std::error::Error for ParseCapsError {
     #[inline]
     fn description(&self) -> &str {
@@ -142,7 +143,7 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
         return f.write_char('=');
     }
 
-    use std::fmt::Write;
+    use core::fmt::Write;
 
     fn format_capset(f: &mut fmt::Formatter, caps: &CapSet, prefix_ch: char) -> fmt::Result {
         debug_assert!(!caps.is_empty());
@@ -158,7 +159,11 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
                     f.write_char(',')?;
                 }
 
-                f.write_str(&cap.to_string().to_ascii_lowercase())?;
+                f.write_str("cap_")?;
+
+                for ch in cap.name().chars() {
+                    f.write_char(ch.to_ascii_lowercase())?;
+                }
             }
         }
 
@@ -355,7 +360,7 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
     Ok(())
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 

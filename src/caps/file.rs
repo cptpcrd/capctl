@@ -19,6 +19,7 @@ use super::{CapSet, CapState};
 ///
 /// [`CapState`]: ./struct.CapState.html
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub struct FileCaps {
@@ -329,7 +330,7 @@ impl fmt::Display for FileCaps {
     }
 }
 
-impl std::str::FromStr for FileCaps {
+impl core::str::FromStr for FileCaps {
     type Err = ParseFileCapsError;
 
     #[inline]
@@ -353,6 +354,7 @@ impl std::str::FromStr for FileCaps {
 }
 
 /// Represents an error when parsing a `FileCaps` object from a string.
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct ParseFileCapsError(ParseCapsError);
 
@@ -373,9 +375,8 @@ impl std::error::Error for ParseFileCapsError {
 
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
-    use std::iter::FromIterator;
-    use std::str::FromStr;
+    use core::iter::FromIterator;
+    use core::str::FromStr;
 
     use crate::caps::Cap;
     use crate::capset;
@@ -546,6 +547,8 @@ mod tests {
 
         #[allow(deprecated)]
         {
+            use std::error::Error;
+
             assert_eq!(
                 FileCaps::from_str("cap_noexist+p")
                     .unwrap_err()
