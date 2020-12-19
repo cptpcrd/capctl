@@ -30,25 +30,46 @@ impl Error {
     }
 
     fn strerror(&self) -> &'static str {
+        // If the given error number is invalid (negative, 0, or out of range), musl's strerror()
+        // returns "No error information".
+        //
+        // However, for negative or out of range numbers, glibc's strerror() allocates memory and
+        // prints "Unknown error %d". This means it can't be 'static.
+        //
+        // So on glibc, if the error code is negative (or if the message returned by strerror()
+        // starts with "Unknown error"), we return "Unknown error" instead.
+
+        #[cfg(any(target_env = "", target_env = "gnu"))]
+        static UNKNOWN_ERROR: &str = "Unknown error";
+        #[cfg(any(target_env = "", target_env = "gnu"))]
+        if self.0 < 0 {
+            return UNKNOWN_ERROR;
+        }
+
         let ptr = unsafe { libc::strerror(self.0) };
 
         debug_assert!(!ptr.is_null());
 
         #[cfg(feature = "std")]
-        return unsafe { std::ffi::CStr::from_ptr(ptr) }.to_str().unwrap();
+        let msg = unsafe { std::ffi::CStr::from_ptr(ptr) }.to_str().unwrap();
 
         #[cfg(not(feature = "std"))]
-        {
+        let msg = {
             let mut len = 0;
             while unsafe { *ptr.add(len) } != 0 {
                 len += 1;
             }
 
-            return core::str::from_utf8(unsafe {
-                core::slice::from_raw_parts(ptr as *const u8, len)
-            })
-            .unwrap();
+            core::str::from_utf8(unsafe { core::slice::from_raw_parts(ptr as *const u8, len) })
+                .unwrap()
+        };
+
+        #[cfg(any(target_env = "", target_env = "gnu"))]
+        if msg.starts_with(UNKNOWN_ERROR) {
+            return UNKNOWN_ERROR;
         }
+
+        msg
     }
 }
 
@@ -111,6 +132,12 @@ mod tests {
     #[test]
     fn test_strerror() {
         assert_eq!(Error::from_code(libc::EISDIR).strerror(), "Is a directory");
+
+        #[cfg(any(target_env = "", target_env = "gnu"))]
+        assert_eq!(Error::from_code(-1).strerror(), "Unknown error");
+
+        #[cfg(any(target_env = "", target_env = "gnu"))]
+        assert_eq!(Error::from_code(8192).strerror(), "Unknown error");
 
         #[cfg(feature = "std")]
         #[allow(deprecated)]
