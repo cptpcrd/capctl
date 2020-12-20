@@ -22,9 +22,14 @@ jobs:
         os: [ubuntu-latest]
         features:
           - ''
-          - sc
           - serde
           - std serde
+
+        include:
+          - toolchain: nightly
+            target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            features: sc
 
     # Allow nightly builds to fail
     continue-on-error: ${{ matrix.toolchain == 'nightly' }}
@@ -76,9 +81,14 @@ jobs:
         os: [ubuntu-latest]
         features:
           - ''
-          - sc
           - serde
           - std serde
+
+        include:
+          - toolchain: nightly
+            target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            features: sc
 
     runs-on: ${{ matrix.os }}
 
