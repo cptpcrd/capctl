@@ -89,6 +89,7 @@ impl fmt::Debug for Error {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 #[cfg(feature = "std")]
 impl std::error::Error for Error {
     #[inline]
