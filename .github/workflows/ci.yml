@@ -22,7 +22,7 @@ jobs:
         os: [ubuntu-latest]
         features:
           - ''
-          - std
+          - sc
           - serde
           - std serde
 
@@ -76,7 +76,7 @@ jobs:
         os: [ubuntu-latest]
         features:
           - ''
-          - std
+          - sc
           - serde
           - std serde
 
