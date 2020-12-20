@@ -1,3 +1,4 @@
+#[cfg(not(feature = "sc"))]
 extern "C" {
     pub fn capget(hdrp: *mut cap_user_header_t, datap: *mut cap_user_data_t) -> libc::c_int;
 

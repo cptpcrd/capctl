@@ -316,13 +316,20 @@ pub fn set_seccomp_strict() -> crate::Result<()> {
 /// `std::fs::read_to_string("/proc/self/timerslack_ns")?.trim().parse::<libc::c_ulong>().unwrap()`
 /// (only works on Linux 4.6+).
 pub fn get_timerslack() -> crate::Result<libc::c_ulong> {
-    let res = unsafe { libc::syscall(libc::SYS_prctl, libc::PR_GET_TIMERSLACK, 0, 0, 0) };
+    #[cfg(not(feature = "sc"))]
+    return {
+        let res = unsafe { libc::syscall(libc::SYS_prctl, libc::PR_GET_TIMERSLACK, 0, 0, 0) };
 
-    if res == -1 {
-        Err(crate::Error::last())
-    } else {
-        Ok(res as libc::c_ulong)
-    }
+        if res == -1 {
+            Err(crate::Error::last())
+        } else {
+            Ok(res as libc::c_ulong)
+        }
+    };
+
+    #[cfg(feature = "sc")]
+    return crate::sc_res_decode(unsafe { sc::syscall!(PRCTL, libc::PR_GET_TIMERSLACK, 0, 0, 0) })
+        .map(|res| res as libc::c_ulong);
 }
 
 /// Set the current timer slack value.

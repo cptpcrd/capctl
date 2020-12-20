@@ -19,13 +19,20 @@ unsafe fn raw_prctl(
     arg4: libc::c_ulong,
     arg5: libc::c_ulong,
 ) -> Result<libc::c_int> {
-    let res = libc::prctl(option, arg2, arg3, arg4, arg5);
+    #[cfg(not(feature = "sc"))]
+    return {
+        let res = libc::prctl(option, arg2, arg3, arg4, arg5);
 
-    if res >= 0 {
-        Ok(res)
-    } else {
-        Err(Error::last())
-    }
+        if res >= 0 {
+            Ok(res)
+        } else {
+            Err(Error::last())
+        }
+    };
+
+    #[cfg(feature = "sc")]
+    return sc_res_decode(sc::syscall!(PRCTL, option, arg2, arg3, arg4, arg5))
+        .map(|res| res as libc::c_int);
 }
 
 #[inline]
@@ -36,11 +43,35 @@ unsafe fn raw_prctl_opt(
     arg4: libc::c_ulong,
     arg5: libc::c_ulong,
 ) -> Option<libc::c_int> {
-    let res = libc::prctl(option, arg2, arg3, arg4, arg5);
+    #[cfg(not(feature = "sc"))]
+    return {
+        let res = libc::prctl(option, arg2, arg3, arg4, arg5);
 
-    if res >= 0 {
-        Some(res)
+        if res >= 0 {
+            Some(res)
+        } else {
+            None
+        }
+    };
+
+    #[cfg(feature = "sc")]
+    return {
+        let res = sc::syscall!(PRCTL, option, arg2, arg3, arg4, arg5);
+
+        if res > -4096isize as usize {
+            None
+        } else {
+            Some(res as libc::c_int)
+        }
+    };
+}
+
+#[cfg(feature = "sc")]
+#[inline]
+fn sc_res_decode(res: usize) -> Result<usize> {
+    if res > -4096isize as usize {
+        Err(Error::from_code((!res + 1) as i32))
     } else {
-        None
+        Ok(res)
     }
 }

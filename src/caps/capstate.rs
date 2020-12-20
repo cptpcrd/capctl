@@ -55,9 +55,15 @@ impl CapState {
             inheritable: 0,
         }; 2];
 
+        #[cfg(not(feature = "sc"))]
         if unsafe { sys::capget(&mut header, raw_dat.as_mut_ptr()) } < 0 {
             return Err(crate::Error::last());
         }
+
+        #[cfg(feature = "sc")]
+        crate::sc_res_decode(unsafe {
+            sc::syscall!(CAPGET, &mut header as *mut _, raw_dat.as_mut_ptr())
+        })?;
 
         Ok(Self {
             effective: CapSet::from_bitmasks_u32(raw_dat[0].effective, raw_dat[1].effective),
@@ -90,9 +96,15 @@ impl CapState {
             },
         ];
 
+        #[cfg(not(feature = "sc"))]
         if unsafe { sys::capset(&mut header, raw_dat.as_ptr()) } < 0 {
             return Err(crate::Error::last());
         }
+
+        #[cfg(feature = "sc")]
+        crate::sc_res_decode(unsafe {
+            sc::syscall!(CAPSET, &mut header as *mut _, raw_dat.as_ptr())
+        })?;
 
         Ok(())
     }
