@@ -49,6 +49,7 @@ pub fn is_set(cap: Cap) -> Option<bool> {
     } {
         Some(res) => Some(res != 0),
         None => {
+            #[cfg(not(feature = "sc"))]
             debug_assert_eq!(unsafe { *libc::__errno_location() }, libc::EINVAL);
             None
         }

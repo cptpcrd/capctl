@@ -17,6 +17,7 @@ pub fn read(cap: Cap) -> Option<bool> {
     match unsafe { crate::raw_prctl_opt(libc::PR_CAPBSET_READ, cap as libc::c_ulong, 0, 0, 0) } {
         Some(res) => Some(res != 0),
         None => {
+            #[cfg(not(feature = "sc"))]
             debug_assert_eq!(unsafe { *libc::__errno_location() }, libc::EINVAL);
             None
         }
