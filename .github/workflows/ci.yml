@@ -19,7 +19,6 @@ jobs:
           - x86_64-unknown-linux-musl
           - i686-unknown-linux-gnu
           - i686-unknown-linux-musl
-        os: [ubuntu-latest]
         features:
           - ''
           - serde
@@ -28,13 +27,12 @@ jobs:
         include:
           - toolchain: nightly
             target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
             features: sc
 
     # Allow nightly builds to fail
     continue-on-error: ${{ matrix.toolchain == 'nightly' }}
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Set up repo
@@ -46,7 +44,7 @@ jobs:
           target: ${{ matrix.target }}
       - name: Install 32-bit glibc build dependencies
         run: sudo apt-get update && sudo apt-get -y install gcc-multilib
-        if: matrix.os == 'ubuntu-latest' && matrix.target == 'i686-unknown-linux-gnu'
+        if: matrix.target == 'i686-unknown-linux-gnu'
 
       - name: Build
         uses: actions-rs/cargo@v1
@@ -61,11 +59,6 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           command: test
           args: --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
-        # Only try to run the tests if the OS/architecture we're building for
-        # matches the host machine.
-        if: >-
-          matrix.os == 'ubuntu-latest' && (startsWith(matrix.target, 'x86_64-unknown-linux-')
-              || startsWith(matrix.target, 'i686-unknown-linux-'))
 
   coverage-tarpaulin:
     name: Tarpaulin
@@ -78,7 +71,6 @@ jobs:
         target:
           - x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
-        os: [ubuntu-latest]
         features:
           - ''
           - serde
@@ -87,10 +79,9 @@ jobs:
         include:
           - toolchain: nightly
             target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
             features: sc
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
