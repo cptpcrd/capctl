@@ -7,6 +7,20 @@
 
 A pure-Rust interface to `prctl()` and Linux capabilities.
 
+### Features
+
+This crate has the following features (by default, only `std` is enabled):
+
+- `std`: Link against the standard library.
+
+    Interfaces that depend on this feature are marked in the [documentation on docs.rs](https://docs.rs/capctl).
+
+- `sc`: Allow making inline syscalls with the `sc` crate instead of calling into the system's libc for *some* operations.
+
+    *Note: Currently, support for inline syscalls is limited to wrappers around `prctl()`, `capget()`, and `capset()`. Most other interfaces will still call into the system's libc.*
+
+- `serde`: Enables implementations of `Serialize` and `Deserialize` for most (non-error) types.
+
 ### Why not [`caps`](https://crates.io/crates/caps)?
 
 **TL;DR**: In the opinion of `capctl`'s author, `caps` adds too much abstraction and overhead.
