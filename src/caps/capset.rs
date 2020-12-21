@@ -120,7 +120,7 @@ impl CapSet {
     /// [the `capset!()` macro]: ../macro.capset.html
     #[doc(hidden)]
     #[inline]
-    pub fn from_bitmask_truncate(bitmask: u64) -> Self {
+    pub const fn from_bitmask_truncate(bitmask: u64) -> Self {
         Self {
             bits: bitmask & CAP_BITMASK,
         }
@@ -646,6 +646,18 @@ mod tests {
         assert_eq!(
             capset!(Cap::CHOWN, Cap::SYSLOG, Cap::FOWNER,),
             CapSet::from_iter([Cap::CHOWN, Cap::SYSLOG, Cap::FOWNER].iter().cloned())
+        );
+
+        const EMPTY_SET: CapSet = capset!();
+        assert_eq!(EMPTY_SET, CapSet::empty());
+
+        const CHOWN_SET: CapSet = capset!(Cap::CHOWN);
+        assert_eq!(CHOWN_SET, CapSet::from_iter([Cap::CHOWN].iter().cloned()));
+
+        const CHOWN_SYSLOG_SET: CapSet = capset!(Cap::CHOWN, Cap::SYSLOG,);
+        assert_eq!(
+            CHOWN_SYSLOG_SET,
+            CapSet::from_iter([Cap::CHOWN, Cap::SYSLOG].iter().cloned())
         );
     }
 }
