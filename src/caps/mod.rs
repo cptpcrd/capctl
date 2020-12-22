@@ -209,7 +209,9 @@ impl core::str::FromStr for Cap {
 
             for (i, cap_name) in CAP_NAMES.iter().enumerate() {
                 if cap_name.eq_ignore_ascii_case(s) {
-                    return Ok(Cap::from_u8(i as u8).unwrap());
+                    debug_assert!(Cap::from_u8(i as u8).is_some());
+
+                    return Ok(unsafe { core::mem::transmute(i as u8) });
                 }
             }
         }
