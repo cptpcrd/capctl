@@ -356,6 +356,18 @@ mod tests {
             assert_eq!(Cap::from_str(&s.to_lowercase()), Ok(cap));
             assert_eq!(Cap::from_str(&s.to_uppercase()), Ok(cap));
         }
+
+        for (cap, name) in Cap::iter().zip(&CAP_NAMES) {
+            // Concatenate strings without allocating
+            let mut full_name = [0u8; 30];
+            full_name[..4].copy_from_slice(b"cap_");
+            full_name[4..name.len() + 4].copy_from_slice(name.as_bytes());
+
+            assert_eq!(
+                Cap::from_str(core::str::from_utf8(&full_name[..name.len() + 4]).unwrap()),
+                Ok(cap)
+            );
+        }
     }
 
     #[cfg(feature = "std")]
