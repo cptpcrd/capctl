@@ -17,7 +17,7 @@ This crate has the following features (by default, only `std` is enabled):
 
 - `sc`: Allow making inline syscalls with the `sc` crate instead of calling into the system's libc for *some* operations.
 
-    *Note: Currently, support for inline syscalls is limited to wrappers around `prctl()`, `capget()`, and `capset()`. Most other interfaces will still call into the system's libc.*
+    *Note: Currently, support for inline syscalls is limited to the following syscalls: `prctl()`, `capget()`, `capset()`, `setresuid()`, `setresgid()`, `setgroups()`. `capctl` will still call into the system's libc for most other syscalls.*
 
 - `serde`: Enables implementations of `Serialize` and `Deserialize` for most (non-error) types.
 

@@ -70,9 +70,53 @@ attr_group! {
         any(target_arch = "arm", target_arch = "sparc", target_arch = "x86")
     ))]
 
-    const SYS_SETRESGID: libc::c_long = libc::SYS_setresgid32;
-    const SYS_SETRESUID: libc::c_long = libc::SYS_setresuid32;
-    const SYS_SETGROUPS: libc::c_long = libc::SYS_setgroups32;
+    #[inline]
+    unsafe fn setresuid(ruid: libc::uid_t, euid: libc::uid_t, suid: libc::uid_t) -> crate::Result<()> {
+        #[cfg(not(feature = "sc"))]
+        return if libc::syscall(libc::SYS_setresuid32, ruid, euid, suid) < 0 {
+            Err(crate::Error::last())
+        } else {
+            Ok(())
+        };
+
+        #[cfg(feature = "sc")]
+        {
+            crate::sc_res_decode(sc::syscall!(SETRESUID32, ruid, euid, suid))?;
+            return Ok(());
+        }
+    }
+
+    #[inline]
+    unsafe fn setresgid(rgid: libc::gid_t, egid: libc::gid_t, sgid: libc::gid_t) -> crate::Result<()> {
+        #[cfg(not(feature = "sc"))]
+        return if libc::syscall(libc::SYS_setresgid32, rgid, egid, sgid) < 0 {
+            Err(crate::Error::last())
+        } else {
+            Ok(())
+        };
+
+        #[cfg(feature = "sc")]
+        {
+            crate::sc_res_decode(sc::syscall!(SETRESGID32, rgid, egid, sgid))?;
+            return Ok(());
+        }
+    }
+
+    #[inline]
+    unsafe fn setgroups(size: libc::size_t, list: *const libc::gid_t) -> crate::Result<()> {
+        #[cfg(not(feature = "sc"))]
+        return if libc::syscall(libc::SYS_setgroups32, size, list) < 0 {
+            Err(crate::Error::last())
+        } else {
+            Ok(())
+        };
+
+        #[cfg(feature = "sc")]
+        {
+            crate::sc_res_decode(sc::syscall!(SETGROUPS32, size, list))?;
+            return Ok(());
+        }
+    }
 }
 
 attr_group! {
@@ -81,9 +125,53 @@ attr_group! {
         any(target_arch = "arm", target_arch = "sparc", target_arch = "x86")
     )))]
 
-    const SYS_SETRESGID: libc::c_long = libc::SYS_setresgid;
-    const SYS_SETRESUID: libc::c_long = libc::SYS_setresuid;
-    const SYS_SETGROUPS: libc::c_long = libc::SYS_setgroups;
+    #[inline]
+    unsafe fn setresuid(ruid: libc::uid_t, euid: libc::uid_t, suid: libc::uid_t) -> crate::Result<()> {
+        #[cfg(not(feature = "sc"))]
+        return if libc::syscall(libc::SYS_setresuid, ruid, euid, suid) < 0 {
+            Err(crate::Error::last())
+        } else {
+            Ok(())
+        };
+
+        #[cfg(feature = "sc")]
+        {
+            crate::sc_res_decode(sc::syscall!(SETRESUID, ruid, euid, suid))?;
+            return Ok(());
+        }
+    }
+
+    #[inline]
+    unsafe fn setresgid(rgid: libc::gid_t, egid: libc::gid_t, sgid: libc::gid_t) -> crate::Result<()> {
+        #[cfg(not(feature = "sc"))]
+        return if libc::syscall(libc::SYS_setresgid, rgid, egid, sgid) < 0 {
+            Err(crate::Error::last())
+        } else {
+            Ok(())
+        };
+
+        #[cfg(feature = "sc")]
+        {
+            crate::sc_res_decode(sc::syscall!(SETRESGID, rgid, egid, sgid))?;
+            return Ok(());
+        }
+    }
+
+    #[inline]
+    unsafe fn setgroups(size: libc::size_t, list: *const libc::gid_t) -> crate::Result<()> {
+        #[cfg(not(feature = "sc"))]
+        return if libc::syscall(libc::SYS_setgroups, size, list) < 0 {
+            Err(crate::Error::last())
+        } else {
+            Ok(())
+        };
+
+        #[cfg(feature = "sc")]
+        {
+            crate::sc_res_decode(sc::syscall!(SETGROUPS, size, list))?;
+            return Ok(());
+        }
+    }
 }
 
 fn do_set_ids(
@@ -93,21 +181,15 @@ fn do_set_ids(
 ) -> crate::Result<()> {
     unsafe {
         if let Some(gid) = gid {
-            if libc::syscall(SYS_SETRESGID, gid, gid, gid) < 0 {
-                return Err(crate::Error::last());
-            }
+            setresgid(gid, gid, gid)?;
         }
 
         if let Some(groups) = groups {
-            if libc::syscall(SYS_SETGROUPS, groups.len(), groups.as_ptr()) < 0 {
-                return Err(crate::Error::last());
-            }
+            setgroups(groups.len(), groups.as_ptr())?;
         }
 
         if let Some(uid) = uid {
-            if libc::syscall(SYS_SETRESUID, uid, uid, uid) < 0 {
-                return Err(crate::Error::last());
-            }
+            setresuid(uid, uid, uid)?;
         }
     }
 
