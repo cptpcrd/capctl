@@ -365,13 +365,7 @@ impl fmt::Display for ParseFileCapsError {
     }
 }
 
-impl std::error::Error for ParseFileCapsError {
-    #[allow(deprecated)]
-    #[inline]
-    fn description(&self) -> &str {
-        self.0.description()
-    }
-}
+impl std::error::Error for ParseFileCapsError {}
 
 #[cfg(test)]
 mod tests {
@@ -544,18 +538,6 @@ mod tests {
             FileCaps::from_str("cap_noexist+p").unwrap_err().to_string(),
             "Unknown capability"
         );
-
-        #[allow(deprecated)]
-        {
-            use std::error::Error;
-
-            assert_eq!(
-                FileCaps::from_str("cap_noexist+p")
-                    .unwrap_err()
-                    .description(),
-                "Unknown capability"
-            );
-        }
     }
 
     #[test]

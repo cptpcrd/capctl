@@ -131,12 +131,7 @@ impl fmt::Display for ParseCapsError {
 }
 
 #[cfg(feature = "std")]
-impl std::error::Error for ParseCapsError {
-    #[inline]
-    fn description(&self) -> &str {
-        self.desc()
-    }
-}
+impl std::error::Error for ParseCapsError {}
 
 pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result {
     if state == CapState::empty() {

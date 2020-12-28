@@ -248,11 +248,7 @@ impl fmt::Display for ParseCapError {
 }
 
 #[cfg(feature = "std")]
-impl std::error::Error for ParseCapError {
-    fn description(&self) -> &str {
-        "Unknown capability"
-    }
-}
+impl std::error::Error for ParseCapError {}
 
 /// An iterator over all the capabilities enumerated in `Cap`.
 ///
@@ -389,7 +385,6 @@ mod tests {
             format!("{:?}", err),
             "ParseCapError { message: \"Unknown capability\" }"
         );
-        assert_eq!(err.description(), "Unknown capability");
     }
 
     #[test]

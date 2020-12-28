@@ -91,12 +91,7 @@ impl fmt::Debug for Error {
 
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 #[cfg(feature = "std")]
-impl std::error::Error for Error {
-    #[inline]
-    fn description(&self) -> &str {
-        self.strerror()
-    }
-}
+impl std::error::Error for Error {}
 
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 #[cfg(feature = "std")]
@@ -139,16 +134,6 @@ mod tests {
 
         #[cfg(any(target_env = "", target_env = "gnu"))]
         assert_eq!(Error::from_code(8192).strerror(), "Unknown error");
-
-        #[cfg(feature = "std")]
-        #[allow(deprecated)]
-        {
-            use std::error::Error;
-            assert_eq!(
-                super::Error::from_code(libc::EISDIR).description(),
-                "Is a directory"
-            );
-        }
     }
 
     #[cfg(feature = "std")]

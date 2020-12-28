@@ -138,13 +138,7 @@ impl fmt::Display for ParseCapStateError {
 
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 #[cfg(feature = "std")]
-impl std::error::Error for ParseCapStateError {
-    #[allow(deprecated)]
-    #[inline]
-    fn description(&self) -> &str {
-        self.0.description()
-    }
-}
+impl std::error::Error for ParseCapStateError {}
 
 #[cfg(test)]
 mod tests {
@@ -205,19 +199,6 @@ mod tests {
             CapState::from_str("cap_noexist+p").unwrap_err().to_string(),
             "Unknown capability"
         );
-
-        #[cfg(feature = "std")]
-        #[allow(deprecated)]
-        {
-            use std::error::Error;
-
-            assert_eq!(
-                CapState::from_str("cap_noexist+p")
-                    .unwrap_err()
-                    .description(),
-                "Unknown capability"
-            );
-        }
     }
 
     #[cfg(feature = "std")]
