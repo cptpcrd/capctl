@@ -370,8 +370,6 @@ mod tests {
     #[allow(deprecated)]
     #[test]
     fn test_cap_string_error() {
-        use std::error::Error;
-
         let err = ParseCapError(());
 
         // Make sure clone() and eq() work
