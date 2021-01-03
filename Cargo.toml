@@ -1,6 +1,6 @@
 [package]
 name = "capctl"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2018"
 
 description = "A pure-Rust interface to prctl() and Linux capabilities."
