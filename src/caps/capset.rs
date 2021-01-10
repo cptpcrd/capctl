@@ -258,8 +258,8 @@ impl fmt::Debug for CapSet {
 /// # use capctl::capset;
 /// # use capctl::caps::{Cap, CapSet};
 /// assert_eq!(capset!(), CapSet::empty());
-/// assert_eq!(capset!(Cap::CHOWN), CapSet::from_iter([Cap::CHOWN].iter().cloned()));
-/// assert_eq!(capset!(Cap::CHOWN, Cap::SYSLOG), CapSet::from_iter([Cap::CHOWN, Cap::SYSLOG].iter().cloned()));
+/// assert_eq!(capset!(Cap::CHOWN), [Cap::CHOWN].iter().cloned().collect());
+/// assert_eq!(capset!(Cap::CHOWN, Cap::SYSLOG), [Cap::CHOWN, Cap::SYSLOG].iter().cloned().collect());
 /// ```
 ///
 /// Note that you cannot use raw integers, only `Cap` variants. For example, this is not allowed:
@@ -360,7 +360,7 @@ mod tests {
 
     #[test]
     fn test_capset_empty() {
-        let mut set = CapSet::from_iter(Cap::iter());
+        let mut set = Cap::iter().collect::<CapSet>();
         for cap in Cap::iter() {
             set.drop(cap);
         }
@@ -372,7 +372,7 @@ mod tests {
         assert!(set.is_empty());
         assert_eq!(set, CapSet::default());
 
-        set = CapSet::from_iter(Cap::iter());
+        set = Cap::iter().collect::<CapSet>();
         set.clear();
         assert_eq!(set.bits, 0);
         assert!(set.is_empty());
@@ -439,22 +439,25 @@ mod tests {
 
     #[test]
     fn test_capset_from_iter() {
-        let set = CapSet::from_iter([Cap::CHOWN, Cap::FOWNER].iter().cloned());
-        assert!(set.iter().eq([Cap::CHOWN, Cap::FOWNER].iter().cloned()),);
+        let set = [Cap::CHOWN, Cap::FOWNER]
+            .iter()
+            .cloned()
+            .collect::<CapSet>();
+        assert!(set.iter().eq([Cap::CHOWN, Cap::FOWNER].iter().cloned()));
     }
 
     #[test]
     fn test_capset_iter_full() {
         assert!(Cap::iter().eq(CapSet { bits: CAP_BITMASK }.iter()));
-        assert!(Cap::iter().eq(CapSet::from_iter(Cap::iter()).iter()));
+        assert!(Cap::iter().eq(Cap::iter().collect::<CapSet>().iter()));
     }
 
     #[test]
     fn test_capset_iter_count() {
         for set in [
-            CapSet::from_iter([].iter().cloned()),
-            CapSet::from_iter([Cap::CHOWN, Cap::FOWNER].iter().cloned()),
-            CapSet::from_iter(Cap::iter()),
+            [].iter().cloned().collect(),
+            [Cap::CHOWN, Cap::FOWNER].iter().cloned().collect(),
+            Cap::iter().collect::<CapSet>(),
         ]
         .iter()
         {
@@ -484,10 +487,13 @@ mod tests {
     fn test_capset_iter_last() {
         let last_cap = Cap::iter().last().unwrap();
 
-        assert_eq!(CapSet::from_iter(Cap::iter()).iter().last(), Some(last_cap));
+        assert_eq!(
+            Cap::iter().collect::<CapSet>().iter().last(),
+            Some(last_cap)
+        );
         assert_eq!(CapSet::empty().iter().last(), None);
 
-        let mut it = CapSet::from_iter(Cap::iter()).iter();
+        let mut it = Cap::iter().collect::<CapSet>().iter();
         assert_eq!(it.clone().last(), Some(last_cap));
         while it.next().is_some() {
             if it.clone().next().is_some() {
@@ -521,26 +527,35 @@ mod tests {
 
     #[test]
     fn test_capset_union() {
-        let a = CapSet::from_iter([Cap::CHOWN, Cap::FOWNER].iter().cloned());
-        let b = CapSet::from_iter([Cap::FOWNER, Cap::KILL].iter().cloned());
-        let c = CapSet::from_iter([Cap::CHOWN, Cap::FOWNER, Cap::KILL].iter().cloned());
+        let a = [Cap::CHOWN, Cap::FOWNER]
+            .iter()
+            .cloned()
+            .collect::<CapSet>();
+        let b = [Cap::FOWNER, Cap::KILL].iter().cloned().collect::<CapSet>();
+        let c = [Cap::CHOWN, Cap::FOWNER, Cap::KILL]
+            .iter()
+            .cloned()
+            .collect::<CapSet>();
         assert_eq!(a.union(b), c);
     }
 
     #[test]
     fn test_capset_intersection() {
-        let a = CapSet::from_iter([Cap::CHOWN, Cap::FOWNER].iter().cloned());
-        let b = CapSet::from_iter([Cap::FOWNER, Cap::KILL].iter().cloned());
-        let c = CapSet::from_iter([Cap::FOWNER].iter().cloned());
+        let a = [Cap::CHOWN, Cap::FOWNER]
+            .iter()
+            .cloned()
+            .collect::<CapSet>();
+        let b = [Cap::FOWNER, Cap::KILL].iter().cloned().collect::<CapSet>();
+        let c = [Cap::FOWNER].iter().cloned().collect::<CapSet>();
         assert_eq!(a.intersection(b), c);
     }
 
     #[test]
     fn test_capset_not() {
-        assert_eq!(!CapSet::from_iter(Cap::iter()), CapSet::empty());
-        assert_eq!(CapSet::from_iter(Cap::iter()), !CapSet::empty());
+        assert_eq!(!Cap::iter().collect::<CapSet>(), CapSet::empty());
+        assert_eq!(Cap::iter().collect::<CapSet>(), !CapSet::empty());
 
-        let mut a = CapSet::from_iter(Cap::iter());
+        let mut a = Cap::iter().collect::<CapSet>();
         let mut b = CapSet::empty();
         a.add(Cap::CHOWN);
         b.drop(Cap::CHOWN);
@@ -549,9 +564,15 @@ mod tests {
 
     #[test]
     fn test_capset_bitor() {
-        let a = CapSet::from_iter([Cap::CHOWN, Cap::FOWNER].iter().cloned());
-        let b = CapSet::from_iter([Cap::FOWNER, Cap::KILL].iter().cloned());
-        let c = CapSet::from_iter([Cap::CHOWN, Cap::FOWNER, Cap::KILL].iter().cloned());
+        let a = [Cap::CHOWN, Cap::FOWNER]
+            .iter()
+            .cloned()
+            .collect::<CapSet>();
+        let b = [Cap::FOWNER, Cap::KILL].iter().cloned().collect::<CapSet>();
+        let c = [Cap::CHOWN, Cap::FOWNER, Cap::KILL]
+            .iter()
+            .cloned()
+            .collect::<CapSet>();
         assert_eq!(a | b, c);
 
         let mut d = a;
@@ -561,9 +582,12 @@ mod tests {
 
     #[test]
     fn test_capset_bitand() {
-        let a = CapSet::from_iter([Cap::CHOWN, Cap::FOWNER].iter().cloned());
-        let b = CapSet::from_iter([Cap::FOWNER, Cap::KILL].iter().cloned());
-        let c = CapSet::from_iter([Cap::FOWNER].iter().cloned());
+        let a = [Cap::CHOWN, Cap::FOWNER]
+            .iter()
+            .cloned()
+            .collect::<CapSet>();
+        let b = [Cap::FOWNER, Cap::KILL].iter().cloned().collect::<CapSet>();
+        let c = [Cap::FOWNER].iter().cloned().collect::<CapSet>();
         assert_eq!(a & b, c);
 
         let mut d = a;
@@ -573,9 +597,12 @@ mod tests {
 
     #[test]
     fn test_capset_bitxor() {
-        let a = CapSet::from_iter([Cap::CHOWN, Cap::FOWNER].iter().cloned());
-        let b = CapSet::from_iter([Cap::FOWNER, Cap::KILL].iter().cloned());
-        let c = CapSet::from_iter([Cap::CHOWN, Cap::KILL].iter().cloned());
+        let a = [Cap::CHOWN, Cap::FOWNER]
+            .iter()
+            .cloned()
+            .collect::<CapSet>();
+        let b = [Cap::FOWNER, Cap::KILL].iter().cloned().collect::<CapSet>();
+        let c = [Cap::CHOWN, Cap::KILL].iter().cloned().collect::<CapSet>();
         assert_eq!(a ^ b, c);
 
         let mut d = a;
@@ -585,9 +612,12 @@ mod tests {
 
     #[test]
     fn test_capset_sub() {
-        let a = CapSet::from_iter([Cap::CHOWN, Cap::FOWNER].iter().cloned());
-        let b = CapSet::from_iter([Cap::FOWNER, Cap::KILL].iter().cloned());
-        let c = CapSet::from_iter([Cap::CHOWN].iter().cloned());
+        let a = [Cap::CHOWN, Cap::FOWNER]
+            .iter()
+            .cloned()
+            .collect::<CapSet>();
+        let b = [Cap::FOWNER, Cap::KILL].iter().cloned().collect::<CapSet>();
+        let c = [Cap::CHOWN].iter().cloned().collect::<CapSet>();
         assert_eq!(a - b, c);
 
         let mut d = a;
@@ -600,13 +630,16 @@ mod tests {
     fn test_capset_fmt() {
         assert_eq!(format!("{:?}", CapSet::empty()), "{}");
         assert_eq!(
-            format!("{:?}", CapSet::from_iter([Cap::CHOWN].iter().cloned())),
+            format!("{:?}", [Cap::CHOWN].iter().cloned().collect::<CapSet>()),
             "{CHOWN}"
         );
         assert_eq!(
             format!(
                 "{:?}",
-                CapSet::from_iter([Cap::CHOWN, Cap::FOWNER].iter().cloned())
+                [Cap::CHOWN, Cap::FOWNER]
+                    .iter()
+                    .cloned()
+                    .collect::<CapSet>()
             ),
             "{CHOWN, FOWNER}"
         );
@@ -616,48 +649,48 @@ mod tests {
     fn test_capset_macro() {
         assert_eq!(capset!(), CapSet::empty());
 
-        assert_eq!(
-            capset!(Cap::CHOWN),
-            CapSet::from_iter([Cap::CHOWN].iter().cloned())
-        );
-        assert_eq!(
-            capset!(Cap::CHOWN,),
-            CapSet::from_iter([Cap::CHOWN].iter().cloned())
-        );
+        assert_eq!(capset!(Cap::CHOWN), [Cap::CHOWN].iter().cloned().collect());
+        assert_eq!(capset!(Cap::CHOWN,), [Cap::CHOWN].iter().cloned().collect());
 
         for cap in Cap::iter() {
-            assert_eq!(capset!(cap), CapSet::from_iter([cap].iter().cloned()));
-            assert_eq!(capset!(cap,), CapSet::from_iter([cap].iter().cloned()));
+            assert_eq!(capset!(cap), [cap].iter().cloned().collect());
+            assert_eq!(capset!(cap,), [cap].iter().cloned().collect());
         }
 
         assert_eq!(
             capset!(Cap::CHOWN, Cap::SYSLOG),
-            CapSet::from_iter([Cap::CHOWN, Cap::SYSLOG].iter().cloned())
+            [Cap::CHOWN, Cap::SYSLOG].iter().cloned().collect()
         );
         assert_eq!(
             capset!(Cap::CHOWN, Cap::SYSLOG,),
-            CapSet::from_iter([Cap::CHOWN, Cap::SYSLOG].iter().cloned())
+            [Cap::CHOWN, Cap::SYSLOG].iter().cloned().collect()
         );
 
         assert_eq!(
             capset!(Cap::CHOWN, Cap::SYSLOG, Cap::FOWNER),
-            CapSet::from_iter([Cap::CHOWN, Cap::SYSLOG, Cap::FOWNER].iter().cloned())
+            [Cap::CHOWN, Cap::SYSLOG, Cap::FOWNER]
+                .iter()
+                .cloned()
+                .collect()
         );
         assert_eq!(
             capset!(Cap::CHOWN, Cap::SYSLOG, Cap::FOWNER,),
-            CapSet::from_iter([Cap::CHOWN, Cap::SYSLOG, Cap::FOWNER].iter().cloned())
+            [Cap::CHOWN, Cap::SYSLOG, Cap::FOWNER]
+                .iter()
+                .cloned()
+                .collect()
         );
 
         const EMPTY_SET: CapSet = capset!();
         assert_eq!(EMPTY_SET, CapSet::empty());
 
         const CHOWN_SET: CapSet = capset!(Cap::CHOWN);
-        assert_eq!(CHOWN_SET, CapSet::from_iter([Cap::CHOWN].iter().cloned()));
+        assert_eq!(CHOWN_SET, [Cap::CHOWN].iter().cloned().collect());
 
         const CHOWN_SYSLOG_SET: CapSet = capset!(Cap::CHOWN, Cap::SYSLOG,);
         assert_eq!(
             CHOWN_SYSLOG_SET,
-            CapSet::from_iter([Cap::CHOWN, Cap::SYSLOG].iter().cloned())
+            [Cap::CHOWN, Cap::SYSLOG].iter().cloned().collect()
         );
     }
 }
