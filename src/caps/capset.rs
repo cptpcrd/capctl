@@ -240,7 +240,11 @@ impl IntoIterator for CapSet {
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        CapSetIterator { set: self, i: 0 }
+        CapSetIterator {
+            set: self,
+            lower: 0,
+            upper: NUM_CAPS,
+        }
     }
 }
 
@@ -294,40 +298,23 @@ macro_rules! capset {
 #[derive(Clone)]
 pub struct CapSetIterator {
     set: CapSet,
-    i: u8,
+    lower: u8,
+    upper: u8,
 }
 
 impl Iterator for CapSetIterator {
     type Item = Cap;
 
     fn next(&mut self) -> Option<Cap> {
-        while let Some(cap) = Cap::from_u8(self.i) {
-            self.i += 1;
+        while self.lower < self.upper {
+            let cap = Cap::from_u8(self.lower)?;
+            self.lower += 1;
             if self.set.has(cap) {
                 return Some(cap);
             }
         }
 
         None
-    }
-
-    #[inline]
-    fn last(self) -> Option<Cap> {
-        // This calculates the position of the largest bit that is set.
-        // For example, if the bitmask is 0b10101, n=5.
-        let n = core::mem::size_of::<u64>() as u8 * 8 - self.set.bits.leading_zeros() as u8;
-
-        if self.i < n {
-            // We haven't yet passed the largest bit.
-            // This uses `<` instead of `<=` because `self.i` and `n` are off by 1 (so we also have
-            // to subtract 1 below).
-
-            let res = Cap::from_u8(n - 1);
-            debug_assert!(res.is_some());
-            res
-        } else {
-            None
-        }
     }
 
     #[inline]
@@ -342,13 +329,26 @@ impl Iterator for CapSetIterator {
     }
 }
 
+impl DoubleEndedIterator for CapSetIterator {
+    fn next_back(&mut self) -> Option<Cap> {
+        while self.lower < self.upper {
+            self.upper -= 1;
+            let cap = Cap::from_u8(self.upper)?;
+            if self.set.has(cap) {
+                return Some(cap);
+            }
+        }
+
+        None
+    }
+}
+
 impl ExactSizeIterator for CapSetIterator {
     #[inline]
     fn len(&self) -> usize {
-        // It should be literally impossible for i to be out of this range
-        debug_assert!(self.i <= NUM_CAPS);
+        debug_assert!(self.lower <= self.upper);
 
-        (self.set.bits >> self.i).count_ones() as usize
+        ((self.set.bits & ((1u64 << self.upper) - 1)) >> self.lower).count_ones() as usize
     }
 }
 
@@ -523,6 +523,23 @@ mod tests {
         assert_eq!(it.clone().last(), None);
         assert_eq!(it.next(), None);
         assert_eq!(it.last(), None);
+    }
+
+    #[test]
+    fn test_capset_iter_rev() {
+        let mut it = capset!(Cap::CHOWN, Cap::KILL, Cap::SYSLOG).iter();
+        assert_eq!(it.next_back(), Some(Cap::SYSLOG));
+        assert_eq!(it.next_back(), Some(Cap::KILL));
+        assert_eq!(it.next_back(), Some(Cap::CHOWN));
+        assert_eq!(it.next_back(), None);
+        assert_eq!(it.next(), None);
+
+        let mut it = capset!(Cap::CHOWN, Cap::KILL, Cap::SYSLOG).iter();
+        assert_eq!(it.next_back(), Some(Cap::SYSLOG));
+        assert_eq!(it.next(), Some(Cap::CHOWN));
+        assert_eq!(it.next(), Some(Cap::KILL));
+        assert_eq!(it.next_back(), None);
+        assert_eq!(it.next(), None);
     }
 
     #[test]

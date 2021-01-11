@@ -134,7 +134,10 @@ impl Cap {
     /// Return an iterator over all of the capabilities enumerated by `Cap`.
     #[inline]
     pub fn iter() -> CapIter {
-        CapIter { i: 0 }
+        CapIter {
+            lower: 0,
+            upper: NUM_CAPS,
+        }
     }
 
     #[inline]
@@ -257,35 +260,39 @@ impl std::error::Error for ParseCapError {}
 /// [`Cap::iter()`]: ./enum.Cap.html#method.iter
 #[derive(Clone)]
 pub struct CapIter {
-    i: u8,
+    lower: u8,
+    upper: u8,
 }
 
 impl Iterator for CapIter {
     type Item = Cap;
 
     fn next(&mut self) -> Option<Cap> {
-        debug_assert!(self.i <= NUM_CAPS);
+        if self.lower >= self.upper {
+            return None;
+        }
 
-        let cap = Cap::from_u8(self.i)?;
-        self.i += 1;
-        Some(cap)
+        let res = Cap::from_u8(self.lower);
+        debug_assert!(res.is_some());
+        self.lower += 1;
+        res
     }
 
     fn nth(&mut self, n: usize) -> Option<Cap> {
         if n < self.len() {
-            self.i += n as u8;
+            self.lower += n as u8;
             self.next()
         } else {
             // The specified index would exhaust the iterator
-            self.i = NUM_CAPS;
+            self.lower = self.upper;
             None
         }
     }
 
     #[inline]
     fn last(self) -> Option<Cap> {
-        if self.i < NUM_CAPS {
-            Some(LAST_CAP)
+        if self.lower < self.upper {
+            Some(Cap::from_u8(self.upper - 1).unwrap())
         } else {
             None
         }
@@ -306,7 +313,31 @@ impl Iterator for CapIter {
 impl ExactSizeIterator for CapIter {
     #[inline]
     fn len(&self) -> usize {
-        (NUM_CAPS - self.i) as usize
+        (self.upper - self.lower) as usize
+    }
+}
+
+impl DoubleEndedIterator for CapIter {
+    fn next_back(&mut self) -> Option<Cap> {
+        if self.lower >= self.upper {
+            return None;
+        }
+
+        self.upper -= 1;
+        let res = Cap::from_u8(self.upper);
+        debug_assert!(res.is_some());
+        res
+    }
+
+    fn nth_back(&mut self, n: usize) -> Option<Cap> {
+        if n < self.len() {
+            self.upper -= n as u8;
+            self.next_back()
+        } else {
+            // The specified index would exhaust the iterator
+            self.lower = self.upper;
+            None
+        }
     }
 }
 
@@ -448,6 +479,80 @@ mod tests {
         assert_eq!(it.len(), 0);
         assert_eq!(it.clone().count(), 0);
         assert_eq!(it.size_hint(), (0, Some(0)));
+    }
+
+    #[test]
+    fn test_cap_iter_rev() {
+        let first_cap = Cap::iter().next().unwrap();
+
+        assert_eq!(Cap::iter().next_back(), Some(LAST_CAP));
+        assert_eq!(Cap::iter().nth_back(0), Some(LAST_CAP));
+
+        assert_eq!(Cap::iter().nth_back(NUM_CAPS as usize - 1), Some(first_cap));
+        assert_eq!(Cap::iter().rev().last(), Some(first_cap));
+        assert_eq!(
+            Cap::iter().rev().nth(NUM_CAPS as usize - 1),
+            Some(first_cap)
+        );
+    }
+
+    #[test]
+    fn test_cap_iter_rev_last() {
+        let first_cap = Cap::iter().next().unwrap();
+
+        assert_eq!(Cap::iter().rev().last(), Some(first_cap));
+
+        let mut last = None;
+        for cap in Cap::iter().rev() {
+            last = Some(cap);
+        }
+        assert_eq!(last, Some(first_cap));
+
+        let mut it = Cap::iter();
+        for _ in it.by_ref() {}
+        assert_eq!(it.len(), 0);
+        assert_eq!(it.last(), None);
+    }
+
+    #[test]
+    fn test_cap_iter_rev_count() {
+        let mut it = Cap::iter();
+
+        let mut count = it.len();
+
+        assert_eq!(it.clone().rev().count(), count);
+        assert_eq!(it.clone().rev().size_hint(), (count, Some(count)));
+
+        loop {
+            let res1 = it.clone().next_back();
+            let res2 = it.nth_back(0);
+            assert_eq!(res1, res2);
+            if res1.is_none() {
+                break;
+            }
+
+            count -= 1;
+            assert_eq!(it.len(), count);
+            assert_eq!(it.clone().count(), count);
+            assert_eq!(it.size_hint(), (count, Some(count)));
+        }
+
+        assert_eq!(count, 0);
+
+        assert_eq!(it.next(), None);
+        assert_eq!(it.len(), 0);
+        assert_eq!(it.clone().count(), 0);
+        assert_eq!(it.size_hint(), (0, Some(0)));
+    }
+
+    #[test]
+    fn test_cap_iter_both_ends() {
+        let first_cap = Cap::iter().next().unwrap();
+
+        let mut it = Cap::iter();
+
+        assert_eq!(it.next_back(), Some(LAST_CAP));
+        assert_eq!(it.next(), Some(first_cap));
     }
 
     #[test]
