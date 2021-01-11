@@ -11,6 +11,7 @@ pub use caps::*;
 pub use err::*;
 pub use prctl::*;
 
+#[allow(clippy::needless_return)]
 #[inline]
 unsafe fn raw_prctl(
     option: libc::c_int,
@@ -19,20 +20,20 @@ unsafe fn raw_prctl(
     arg4: libc::c_ulong,
     arg5: libc::c_ulong,
 ) -> Result<libc::c_int> {
-    #[cfg(not(feature = "sc"))]
-    return {
-        let res = libc::prctl(option, arg2, arg3, arg4, arg5);
-
-        if res >= 0 {
-            Ok(res)
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "sc")] {
+            return sc_res_decode(sc::syscall!(PRCTL, option, arg2, arg3, arg4, arg5))
+                .map(|res| res as libc::c_int);
         } else {
-            Err(Error::last())
-        }
-    };
+            let res = libc::prctl(option, arg2, arg3, arg4, arg5);
 
-    #[cfg(feature = "sc")]
-    return sc_res_decode(sc::syscall!(PRCTL, option, arg2, arg3, arg4, arg5))
-        .map(|res| res as libc::c_int);
+            return if res >= 0 {
+                Ok(res)
+            } else {
+                Err(Error::last())
+            };
+        }
+    }
 }
 
 #[inline]
@@ -43,27 +44,23 @@ unsafe fn raw_prctl_opt(
     arg4: libc::c_ulong,
     arg5: libc::c_ulong,
 ) -> Option<libc::c_int> {
-    #[cfg(not(feature = "sc"))]
-    return {
-        let res = libc::prctl(option, arg2, arg3, arg4, arg5);
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "sc")] {
+            let res = sc::syscall!(PRCTL, option, arg2, arg3, arg4, arg5);
 
-        if res >= 0 {
-            Some(res)
+            if res <= -4096isize as usize {
+                return Some(res as libc::c_int);
+            }
         } else {
-            None
-        }
-    };
+            let res = libc::prctl(option, arg2, arg3, arg4, arg5);
 
-    #[cfg(feature = "sc")]
-    return {
-        let res = sc::syscall!(PRCTL, option, arg2, arg3, arg4, arg5);
-
-        if res > -4096isize as usize {
-            None
-        } else {
-            Some(res as libc::c_int)
+            if res >= 0 {
+                return Some(res);
+            }
         }
-    };
+    }
+
+    None
 }
 
 #[cfg(feature = "sc")]

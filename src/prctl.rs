@@ -315,21 +315,23 @@ pub fn set_seccomp_strict() -> crate::Result<()> {
 /// If you *really* need to handle values in this range, try
 /// `std::fs::read_to_string("/proc/self/timerslack_ns")?.trim().parse::<libc::c_ulong>().unwrap()`
 /// (only works on Linux 4.6+).
+#[allow(clippy::needless_return)]
 pub fn get_timerslack() -> crate::Result<libc::c_ulong> {
-    #[cfg(not(feature = "sc"))]
-    return {
-        let res = unsafe { libc::syscall(libc::SYS_prctl, libc::PR_GET_TIMERSLACK, 0, 0, 0) };
-
-        if res == -1 {
-            Err(crate::Error::last())
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "sc")] {
+            return crate::sc_res_decode(unsafe {
+                sc::syscall!(PRCTL, libc::PR_GET_TIMERSLACK, 0, 0, 0)
+            }).map(|res| res as libc::c_ulong);
         } else {
-            Ok(res as libc::c_ulong)
-        }
-    };
+            let res = unsafe { libc::syscall(libc::SYS_prctl, libc::PR_GET_TIMERSLACK, 0, 0, 0) };
 
-    #[cfg(feature = "sc")]
-    return crate::sc_res_decode(unsafe { sc::syscall!(PRCTL, libc::PR_GET_TIMERSLACK, 0, 0, 0) })
-        .map(|res| res as libc::c_ulong);
+            return if res == -1 {
+                Err(crate::Error::last())
+            } else {
+                Ok(res as libc::c_ulong)
+            };
+        }
+    }
 }
 
 /// Set the current timer slack value.

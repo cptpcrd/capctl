@@ -55,121 +55,99 @@ pub fn cap_set_ids(
         .and(crate::prctl::set_keepcaps(orig_keepcaps))
 }
 
-macro_rules! attr_group {
-    (#![$attr:meta] $($stmts:item)*) => {
-        $(
-            #[$attr]
-            $stmts
-        )*
-    }
-}
-
-attr_group! {
-    #![cfg(all(
+cfg_if::cfg_if! {
+    if #[cfg(all(
         target_pointer_width = "32",
         any(target_arch = "arm", target_arch = "sparc", target_arch = "x86")
-    ))]
+    ))] {
+        #[inline]
+        unsafe fn setresuid(ruid: libc::uid_t, euid: libc::uid_t, suid: libc::uid_t) -> crate::Result<()> {
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "sc")] {
+                    crate::sc_res_decode(sc::syscall!(SETRESUID32, ruid, euid, suid))?;
+                } else {
+                    if libc::syscall(libc::SYS_setresuid32, ruid, euid, suid) < 0 {
+                        return Err(crate::Error::last());
+                    }
+                }
+            }
 
-    #[inline]
-    unsafe fn setresuid(ruid: libc::uid_t, euid: libc::uid_t, suid: libc::uid_t) -> crate::Result<()> {
-        #[cfg(not(feature = "sc"))]
-        return if libc::syscall(libc::SYS_setresuid32, ruid, euid, suid) < 0 {
-            Err(crate::Error::last())
-        } else {
             Ok(())
-        };
-
-        #[cfg(feature = "sc")]
-        {
-            crate::sc_res_decode(sc::syscall!(SETRESUID32, ruid, euid, suid))?;
-            return Ok(());
         }
-    }
 
-    #[inline]
-    unsafe fn setresgid(rgid: libc::gid_t, egid: libc::gid_t, sgid: libc::gid_t) -> crate::Result<()> {
-        #[cfg(not(feature = "sc"))]
-        return if libc::syscall(libc::SYS_setresgid32, rgid, egid, sgid) < 0 {
-            Err(crate::Error::last())
-        } else {
+        #[inline]
+        unsafe fn setresgid(rgid: libc::gid_t, egid: libc::gid_t, sgid: libc::gid_t) -> crate::Result<()> {
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "sc")] {
+                    crate::sc_res_decode(sc::syscall!(SETRESGID32, rgid, egid, sgid))?;
+                } else {
+                    if libc::syscall(libc::SYS_setresgid32, rgid, egid, sgid) < 0 {
+                        return Err(crate::Error::last());
+                    }
+                }
+            }
+
             Ok(())
-        };
-
-        #[cfg(feature = "sc")]
-        {
-            crate::sc_res_decode(sc::syscall!(SETRESGID32, rgid, egid, sgid))?;
-            return Ok(());
         }
-    }
 
-    #[inline]
-    unsafe fn setgroups(size: libc::size_t, list: *const libc::gid_t) -> crate::Result<()> {
-        #[cfg(not(feature = "sc"))]
-        return if libc::syscall(libc::SYS_setgroups32, size, list) < 0 {
-            Err(crate::Error::last())
-        } else {
+        #[inline]
+        unsafe fn setgroups(size: libc::size_t, list: *const libc::gid_t) -> crate::Result<()> {
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "sc")] {
+                    crate::sc_res_decode(sc::syscall!(SETGROUPS32, size, list))?;
+                } else {
+                    if libc::syscall(libc::SYS_setgroups32, size, list) < 0 {
+                        return Err(crate::Error::last());
+                    }
+                }
+            }
+
             Ok(())
-        };
-
-        #[cfg(feature = "sc")]
-        {
-            crate::sc_res_decode(sc::syscall!(SETGROUPS32, size, list))?;
-            return Ok(());
         }
-    }
-}
+    } else {
+        #[inline]
+        unsafe fn setresuid(ruid: libc::uid_t, euid: libc::uid_t, suid: libc::uid_t) -> crate::Result<()> {
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "sc")] {
+                    crate::sc_res_decode(sc::syscall!(SETRESUID, ruid, euid, suid))?;
+                } else {
+                    if libc::syscall(libc::SYS_setresuid, ruid, euid, suid) < 0 {
+                        return Err(crate::Error::last());
+                    }
+                }
+            }
 
-attr_group! {
-    #![cfg(not(all(
-        target_pointer_width = "32",
-        any(target_arch = "arm", target_arch = "sparc", target_arch = "x86")
-    )))]
-
-    #[inline]
-    unsafe fn setresuid(ruid: libc::uid_t, euid: libc::uid_t, suid: libc::uid_t) -> crate::Result<()> {
-        #[cfg(not(feature = "sc"))]
-        return if libc::syscall(libc::SYS_setresuid, ruid, euid, suid) < 0 {
-            Err(crate::Error::last())
-        } else {
             Ok(())
-        };
-
-        #[cfg(feature = "sc")]
-        {
-            crate::sc_res_decode(sc::syscall!(SETRESUID, ruid, euid, suid))?;
-            return Ok(());
         }
-    }
 
-    #[inline]
-    unsafe fn setresgid(rgid: libc::gid_t, egid: libc::gid_t, sgid: libc::gid_t) -> crate::Result<()> {
-        #[cfg(not(feature = "sc"))]
-        return if libc::syscall(libc::SYS_setresgid, rgid, egid, sgid) < 0 {
-            Err(crate::Error::last())
-        } else {
+        #[inline]
+        unsafe fn setresgid(rgid: libc::gid_t, egid: libc::gid_t, sgid: libc::gid_t) -> crate::Result<()> {
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "sc")] {
+                    crate::sc_res_decode(sc::syscall!(SETRESGID, rgid, egid, sgid))?;
+                } else {
+                    if libc::syscall(libc::SYS_setresgid, rgid, egid, sgid) < 0 {
+                        return Err(crate::Error::last());
+                    }
+                }
+            }
+
             Ok(())
-        };
-
-        #[cfg(feature = "sc")]
-        {
-            crate::sc_res_decode(sc::syscall!(SETRESGID, rgid, egid, sgid))?;
-            return Ok(());
         }
-    }
 
-    #[inline]
-    unsafe fn setgroups(size: libc::size_t, list: *const libc::gid_t) -> crate::Result<()> {
-        #[cfg(not(feature = "sc"))]
-        return if libc::syscall(libc::SYS_setgroups, size, list) < 0 {
-            Err(crate::Error::last())
-        } else {
+        #[inline]
+        unsafe fn setgroups(size: libc::size_t, list: *const libc::gid_t) -> crate::Result<()> {
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "sc")] {
+                    crate::sc_res_decode(sc::syscall!(SETGROUPS, size, list))?;
+                } else {
+                    if libc::syscall(libc::SYS_setgroups, size, list) < 0 {
+                        return Err(crate::Error::last());
+                    }
+                }
+            }
+
             Ok(())
-        };
-
-        #[cfg(feature = "sc")]
-        {
-            crate::sc_res_decode(sc::syscall!(SETGROUPS, size, list))?;
-            return Ok(());
         }
     }
 }
