@@ -191,13 +191,13 @@ mod tests {
 
     #[test]
     fn test_set_ids_some() {
-        let effective_caps = crate::caps::CapState::get_current().unwrap().effective;
+        let permitted_caps = crate::caps::CapState::get_current().unwrap().permitted;
 
         let uid = unsafe { libc::geteuid() };
         let gid = unsafe { libc::getegid() };
 
-        if effective_caps.has(crate::caps::Cap::SETUID)
-            && effective_caps.has(crate::caps::Cap::SETGID)
+        if permitted_caps.has(crate::caps::Cap::SETUID)
+            && permitted_caps.has(crate::caps::Cap::SETGID)
         {
             cap_set_ids(Some(uid), Some(gid), None).unwrap();
         } else {
