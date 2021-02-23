@@ -60,6 +60,9 @@ jobs:
           command: test
           args: --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
 
+      - name: Run tests (in user namespace)
+        run: unshare -r cargo +${{ matrix.toolchain }} test --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
+
   coverage-tarpaulin:
     name: Tarpaulin
 
@@ -71,11 +74,21 @@ jobs:
         target:
           - x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
+        features:
+          - ''
+        prefix:
+          - ''
+          - unshare -r
 
         include:
           - toolchain: nightly
             target: x86_64-unknown-linux-gnu
             features: sc
+            prefix: ''
+          - toolchain: nightly
+            target: x86_64-unknown-linux-gnu
+            features: sc
+            prefix: unshare -r
 
     runs-on: ubuntu-latest
 
@@ -95,11 +108,7 @@ jobs:
           use-tool-cache: true
 
       - name: Run tarpaulin
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: ${{ matrix.toolchain }}
-          command: tarpaulin
-          args: --verbose --out Xml --target ${{ matrix.target }}
+        run: ${{ matrix.prefix }} cargo +${{ matrix.toolchain }} tarpaulin --verbose --out Xml --target ${{ matrix.target }} --features "${{ matrix.features }}"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1.0.13
