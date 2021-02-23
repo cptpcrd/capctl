@@ -1,3 +1,5 @@
+//! Interfaces to `prctl()` commands that don't deal with capabilities.
+
 /// Set the name of the current thread.
 ///
 /// If the given name is longer than 15 bytes, it will be truncated to the first 15 bytes.

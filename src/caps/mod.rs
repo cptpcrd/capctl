@@ -1,3 +1,5 @@
+//! Interfaces to Linux capabilities.
+
 use core::fmt;
 
 mod cap_text;
