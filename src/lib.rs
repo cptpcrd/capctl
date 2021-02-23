@@ -1,3 +1,52 @@
+//! # `capctl`
+//!
+//! A library for manipulating Linux capabilities and making `prctl()` calls.
+//!
+//! # Potential Pitfalls
+//!
+//! - See [Handling of newly-added capabilities](#handling-of-newly-added-capabilities). **This can
+//!   create security issues if it is not accounted for.**
+//!
+//! ## Handling of capabilities not supported by the kernel
+//!
+//! When a binary using this library is running on an older kernel that does not support a few
+//! newly-added capabilities, here is how this library will handle them:
+//!
+//! - [`caps::Cap::is_supported()`] and [`caps::Cap::probe_supported()`] can be used to detect
+//!   that the capability is unsupported (`cap.is_supported()` will return `false`, and
+//!   `Cap::probe_supported()` will not include it in the returned set).
+//! - [`caps::CapState`] and [`FullCapState`] will never include the unsupported capability(s) in
+//!   the returned capability sets.
+//! - Trying to include the unsupported capability(s) in the new permitted/effective/inheritable
+//!   sets with [`caps::CapState::set_current()`] will cause them to be silently removed from the
+//!   new sets. (This is a kernel limitation.)
+//! - The following functions will return an `Error` with code `EINVAL` if passed the unsupported
+//!   capability:
+//!   - [`caps::bounding::drop()`]
+//!   - [`caps::ambient::raise()`]
+//!   - [`caps::ambient::lower()`]
+//! - [`caps::ambient::is_set()`] and [`caps::bounding::read()`] will return `None` if passed the
+//!   unsupported capability.
+//!
+//! ## Handling of newly-added capabilities
+//!
+//! Conversely, when a binary using this library is running on a newer kernel that has added one or
+//! more new capabilities, issues can arise. Here is how this library will handle those
+//! capabilities:
+//!
+//! - If the permitted, effective, and/or inheritable capability sets of this process are modified
+//!   (in any way) using [`caps::CapState`], the unknown capability(s) will be removed from the
+//!   permitted, effective, and inheritable sets.
+//! - The following functions are the **ONLY** functions in this crate that will drop the unknown
+//!   capability(s) from the ambient/bounding sets (see their documentation for more information):
+//!   - [`caps::ambient::clear()`]
+//!   - [`caps::ambient::clear_unknown()`]
+//!   - [`caps::bounding::clear()`]
+//!   - [`caps::bounding::clear_unknown()`]
+//!
+//! As a result, if you are trying to clear the ambient and/or bounding capability sets, you must
+//! call the `clear()` or `clear_unknown()` function for whichever set you want to clear.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 

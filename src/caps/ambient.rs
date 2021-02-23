@@ -57,6 +57,9 @@ pub fn is_set(cap: Cap) -> Option<bool> {
 }
 
 /// Clear the current thread's ambient capability set.
+///
+/// This is a single `prctl()` call (`PR_CAP_AMBIENT_CLEAR_ALL`) that removes all capabilities
+/// supported by the kernel from the ambient set.
 #[inline]
 pub fn clear() -> crate::Result<()> {
     unsafe {
@@ -106,6 +109,31 @@ pub fn probe() -> Option<CapSet> {
     Some(set)
 }
 
+/// Drop all bounding capabilities that are supported by the kernel but which this library is not
+/// aware of from the current thread's ambient capability set.
+///
+/// See [Handling of newly-added capabilities](../index.html#handling-of-newly-added-capabilities)
+/// for the rationale.
+pub fn clear_unknown() -> crate::Result<()> {
+    for cap in (super::CAP_MAX as libc::c_ulong)..(super::CAP_MAX as libc::c_ulong * 2) {
+        match unsafe {
+            crate::raw_prctl(
+                libc::PR_CAP_AMBIENT,
+                libc::PR_CAP_AMBIENT_LOWER as libc::c_ulong,
+                cap,
+                0,
+                0,
+            )
+        } {
+            Ok(_) => (),
+            Err(e) if e.code() == libc::EINVAL => return Ok(()),
+            Err(e) => return Err(e),
+        }
+    }
+
+    Err(crate::Error::from_code(libc::E2BIG))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -126,6 +154,10 @@ mod tests {
                     assert_eq!(is_set(cap), None);
                 }
             }
+
+            // Clear unknown capabilities from the ambient capability set
+            clear_unknown().unwrap();
+            assert_eq!(probe().unwrap(), orig_caps);
 
             // Clear the ambient capability set
             clear().unwrap();
@@ -152,6 +184,7 @@ mod tests {
             assert_eq!(raise(Cap::CHOWN).unwrap_err().code(), libc::EINVAL);
             assert_eq!(lower(Cap::CHOWN).unwrap_err().code(), libc::EINVAL);
             assert_eq!(clear().unwrap_err().code(), libc::EINVAL);
+            assert_eq!(clear_unknown().unwrap_err().code(), libc::EINVAL);
         }
     }
 }
