@@ -107,7 +107,7 @@ pub fn clear() -> crate::Result<()> {
 ///     }
 /// }
 /// // Drop any new capabilities that `capctl` wasn't aware of at compile time
-/// bounding::clear_extra();
+/// bounding::clear_unknown();
 /// ```
 ///
 /// See [Handling of newly-added capabilities](../index.html#handling-of-newly-added-capabilities)
