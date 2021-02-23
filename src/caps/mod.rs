@@ -158,6 +158,7 @@ impl Cap {
     }
 
     /// Checks whether the specified capability is supported on the current kernel.
+    #[inline]
     pub fn is_supported(self) -> bool {
         bounding::read(self).is_some()
     }
