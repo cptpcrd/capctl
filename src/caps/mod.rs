@@ -26,13 +26,44 @@ pub use capset::{CapSet, CapSetIterator};
 pub use capstate::{CapState, ParseCapStateError};
 pub use helpers::cap_set_ids;
 
-/// An enum representing all of the possible Linux capabilities.
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
-#[repr(u8)]
-#[allow(non_camel_case_types)]
-#[non_exhaustive]
-pub enum Cap {
+/// Given a series of "paths" (i.e. `a::b`), yield the last one.
+macro_rules! last_path {
+    ($last:path $(,)?) => {
+        $last
+    };
+
+    ($first:path$(, $rest:path)+ $(,)?) => {
+        last_path! { $($rest),+ }
+    }
+}
+
+macro_rules! define_cap {
+    ($($name:ident = $val:literal,)+) => {
+        /// An enum representing all of the possible Linux capabilities.
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+        #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+        #[repr(u8)]
+        #[allow(non_camel_case_types)]
+        #[non_exhaustive]
+        pub enum Cap {
+            $($name = $val,)+
+        }
+
+        // WARNING: Unsafe code trusts these constants to be correct!
+
+        const LAST_CAP: Cap = last_path!($(Cap::$name,)+);
+
+        // Some other useful values derived from LAST_CAP
+        const CAP_MAX: u8 = LAST_CAP as u8;
+        const NUM_CAPS: u8 = CAP_MAX + 1;
+        // Shift to the left, then subtract one to get the lower bits filled with ones.
+        const CAP_BITMASK: u64 = (1u64 << NUM_CAPS) - 1;
+
+        static CAP_NAMES: [&str; NUM_CAPS as usize] = [$(stringify!($name),)+];
+    };
+}
+
+define_cap! {
     CHOWN = 0,
     DAC_OVERRIDE = 1,
     DAC_READ_SEARCH = 2,
@@ -74,63 +105,9 @@ pub enum Cap {
     PERFMON = 38,
     BPF = 39,
     CHECKPOINT_RESTORE = 40,
-    // Note: When adding a new capability, make sure to update LAST_CAP and CAP_NAMES
+    // Adding a new capability here is sufficient to make the library aware of it (though the
+    // capability numbers MUST be consecutive)
 }
-
-// *** WARNING WARNING WARNING ***
-// This MUST be set to the last capability from the above list!
-// This assumption is used by unsafe code to speed up checks.
-const LAST_CAP: Cap = Cap::CHECKPOINT_RESTORE;
-
-// Some other useful values derived from LAST_CAP
-const CAP_MAX: u8 = LAST_CAP as u8;
-const NUM_CAPS: u8 = CAP_MAX + 1;
-// Shift to the left, then subtract one to get the lower bits filled with ones.
-const CAP_BITMASK: u64 = (1u64 << NUM_CAPS) - 1;
-
-static CAP_NAMES: [&str; NUM_CAPS as usize] = [
-    "CHOWN",
-    "DAC_OVERRIDE",
-    "DAC_READ_SEARCH",
-    "FOWNER",
-    "FSETID",
-    "KILL",
-    "SETGID",
-    "SETUID",
-    "SETPCAP",
-    "LINUX_IMMUTABLE",
-    "NET_BIND_SERVICE",
-    "NET_BROADCAST",
-    "NET_ADMIN",
-    "NET_RAW",
-    "IPC_LOCK",
-    "IPC_OWNER",
-    "SYS_MODULE",
-    "SYS_RAWIO",
-    "SYS_CHROOT",
-    "SYS_PTRACE",
-    "SYS_PACCT",
-    "SYS_ADMIN",
-    "SYS_BOOT",
-    "SYS_NICE",
-    "SYS_RESOURCE",
-    "SYS_TIME",
-    "SYS_TTY_CONFIG",
-    "MKNOD",
-    "LEASE",
-    "AUDIT_WRITE",
-    "AUDIT_CONTROL",
-    "SETFCAP",
-    "MAC_OVERRIDE",
-    "MAC_ADMIN",
-    "SYSLOG",
-    "WAKE_ALARM",
-    "BLOCK_SUSPEND",
-    "AUDIT_READ",
-    "PERFMON",
-    "BPF",
-    "CHECKPOINT_RESTORE",
-];
 
 impl Cap {
     /// Return an iterator over all of the capabilities enumerated by `Cap`.
