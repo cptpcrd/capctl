@@ -18,7 +18,7 @@ std = []
 
 [dependencies]
 libc = { version = "0.2", default-features = false }
-cfg-if = "0.1"
+cfg-if = "1.0"
 bitflags = "1.2"
 
 serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
