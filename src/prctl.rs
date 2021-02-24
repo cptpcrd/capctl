@@ -254,6 +254,7 @@ bitflags::bitflags! {
 /// Get the "securebits" flags of the current thread.
 ///
 /// See [`set_securebits()`](./fn.set_securebits.html) for more details.
+#[inline]
 pub fn get_securebits() -> crate::Result<Secbits> {
     let f = unsafe { crate::raw_prctl(libc::PR_GET_SECUREBITS, 0, 0, 0, 0) }?;
 
@@ -266,6 +267,7 @@ pub fn get_securebits() -> crate::Result<Secbits> {
 /// [`Secbits`](struct.Secbits.html) and capabilities(7) for more details.
 ///
 /// Note: Modifying the securebits with this function requires the CAP_SETPCAP capability.
+#[inline]
 pub fn set_securebits(flags: Secbits) -> crate::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_SET_SECUREBITS, flags.bits(), 0, 0, 0) }?;
 
@@ -278,6 +280,7 @@ pub fn set_securebits(flags: Secbits) -> crate::Result<()> {
 /// seccomp filter mode (and the `prctl()` syscall with the given arguments is allowed by the
 /// filters) then this function returns `true`; if it is in strict computing mode then it will be
 /// sent a SIGKILL signal.
+#[inline]
 pub fn get_seccomp() -> crate::Result<bool> {
     let res = unsafe { crate::raw_prctl(libc::PR_GET_SECCOMP, 0, 0, 0, 0) }?;
 
@@ -288,6 +291,7 @@ pub fn get_seccomp() -> crate::Result<bool> {
 ///
 /// After this call, any syscalls except `read()`, `write()`, `_exit()`, and `sigreturn()` will
 /// cause the thread to be terminated with SIGKILL.
+#[inline]
 pub fn set_seccomp_strict() -> crate::Result<()> {
     unsafe {
         crate::raw_prctl(
@@ -318,6 +322,7 @@ pub fn set_seccomp_strict() -> crate::Result<()> {
 /// `std::fs::read_to_string("/proc/self/timerslack_ns")?.trim().parse::<libc::c_ulong>().unwrap()`
 /// (only works on Linux 4.6+).
 #[allow(clippy::needless_return)]
+#[inline]
 pub fn get_timerslack() -> crate::Result<libc::c_ulong> {
     cfg_if::cfg_if! {
         if #[cfg(feature = "sc")] {
@@ -343,6 +348,7 @@ pub fn get_timerslack() -> crate::Result<libc::c_ulong> {
 ///
 /// Note: Passing a value of 0 will reset the current timer slack value to the "default" timer
 /// slack value (which is inherited from the parent). Again, prctl(2) contains more information.
+#[inline]
 pub fn set_timerslack(new_slack: libc::c_ulong) -> crate::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_SET_TIMERSLACK, new_slack, 0, 0, 0) }?;
 
