@@ -128,8 +128,8 @@ impl FileCaps {
 
         let effective = (flags & sys::VFS_CAP_FLAGS_EFFECTIVE) != 0;
 
-        if version == sys::VFS_CAP_REVISION_2 && len == sys::XATTR_CAPS_SZ_2 {
-            Ok(FileCaps {
+        match (version, len) {
+            (sys::VFS_CAP_REVISION_2, sys::XATTR_CAPS_SZ_2) => Ok(FileCaps {
                 effective,
                 permitted: CapSet::from_bitmasks_u32(
                     u32::from_le_bytes(attrs[4..8].try_into().unwrap()),
@@ -140,9 +140,9 @@ impl FileCaps {
                     u32::from_le_bytes(attrs[16..20].try_into().unwrap()),
                 ),
                 rootid: None,
-            })
-        } else if version == sys::VFS_CAP_REVISION_3 && len == sys::XATTR_CAPS_SZ_3 {
-            Ok(FileCaps {
+            }),
+
+            (sys::VFS_CAP_REVISION_3, sys::XATTR_CAPS_SZ_3) => Ok(FileCaps {
                 effective,
                 permitted: CapSet::from_bitmasks_u32(
                     u32::from_le_bytes(attrs[4..8].try_into().unwrap()),
@@ -153,9 +153,9 @@ impl FileCaps {
                     u32::from_le_bytes(attrs[16..20].try_into().unwrap()),
                 ),
                 rootid: Some(u32::from_le_bytes(attrs[20..24].try_into().unwrap())),
-            })
-        } else if version == sys::VFS_CAP_REVISION_1 && len == sys::XATTR_CAPS_SZ_1 {
-            Ok(FileCaps {
+            }),
+
+            (sys::VFS_CAP_REVISION_1, sys::XATTR_CAPS_SZ_1) => Ok(FileCaps {
                 effective,
                 permitted: CapSet::from_bitmask_truncate(u32::from_le_bytes(
                     attrs[4..8].try_into().unwrap(),
@@ -164,9 +164,9 @@ impl FileCaps {
                     attrs[8..12].try_into().unwrap(),
                 ) as u64),
                 rootid: None,
-            })
-        } else {
-            Err(io::Error::from_raw_os_error(libc::EINVAL))
+            }),
+
+            (_, _) => Err(io::Error::from_raw_os_error(libc::EINVAL)),
         }
     }
 
