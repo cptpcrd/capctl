@@ -49,6 +49,16 @@ macro_rules! define_cap {
             $($name = $val,)+
         }
 
+        impl Cap {
+            #[inline]
+            fn from_u8(val: u8) -> Option<Self> {
+                match val {
+                    $($val => Some(Self::$name),)*
+                    _ => None,
+                }
+            }
+        }
+
         // WARNING: Unsafe code trusts these constants to be correct!
 
         const LAST_CAP: Cap = last_path!($(Cap::$name,)+);
@@ -114,15 +124,6 @@ impl Cap {
     #[inline]
     pub fn iter() -> CapIter {
         CapIter { i: 0 }
-    }
-
-    #[inline]
-    fn from_u8(val: u8) -> Option<Self> {
-        if val <= CAP_MAX {
-            Some(unsafe { core::mem::transmute(val) })
-        } else {
-            None
-        }
     }
 
     #[inline]
