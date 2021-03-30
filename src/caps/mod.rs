@@ -203,7 +203,7 @@ impl core::str::FromStr for Cap {
 
 impl fmt::Display for Cap {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "CAP_")?;
+        f.write_str("CAP_")?;
         fmt::Debug::fmt(self, f)
     }
 }
