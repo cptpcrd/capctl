@@ -43,7 +43,7 @@ macro_rules! define_cap {
         #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
         #[repr(u8)]
-        #[allow(non_camel_case_types)]
+        #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
         #[non_exhaustive]
         pub enum Cap {
             $($name = $val,)+
