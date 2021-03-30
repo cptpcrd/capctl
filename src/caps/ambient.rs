@@ -115,7 +115,7 @@ pub fn probe() -> Option<CapSet> {
 /// See [Handling of newly-added capabilities](../index.html#handling-of-newly-added-capabilities)
 /// for the rationale.
 pub fn clear_unknown() -> crate::Result<()> {
-    for cap in (super::CAP_MAX as libc::c_ulong)..(super::CAP_MAX as libc::c_ulong * 2) {
+    for cap in (super::CAP_MAX as libc::c_ulong + 1)..(super::CAP_MAX as libc::c_ulong * 2) {
         match unsafe {
             crate::raw_prctl(
                 libc::PR_CAP_AMBIENT,
