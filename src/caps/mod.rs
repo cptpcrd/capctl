@@ -299,6 +299,18 @@ mod tests {
 
     use super::*;
 
+    #[allow(clippy::eq_op)]
+    #[test]
+    fn test_last_path() {
+        // Briefly test the last_path! macro since unsafe code relies on it to be correct
+        assert_eq!(last_path!(Cap::CHOWN), Cap::CHOWN);
+        assert_eq!(last_path!(Cap::CHOWN, Cap::SETUID), Cap::SETUID);
+        assert_eq!(
+            last_path!(Cap::CHOWN, CAP::SETUID, Cap::SETGID,),
+            Cap::SETGID
+        );
+    }
+
     #[test]
     fn test_cap_u8() {
         for i in 0..NUM_CAPS {

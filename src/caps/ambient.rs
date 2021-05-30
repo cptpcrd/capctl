@@ -165,6 +165,30 @@ mod tests {
             // Now make sure it's actually empty
             assert_eq!(probe().unwrap(), CapSet::empty());
 
+            // Now test actually raising capabilities
+            let orig_state = crate::caps::CapState::get_current().unwrap();
+            let mut state = orig_state;
+            // To start, copy the permitted setto the inheritable set
+            state.inheritable = state.permitted;
+            state.set_current().unwrap();
+
+            // Now raise all of those capabilities in the ambient set
+            for cap in state.inheritable {
+                raise(cap).unwrap();
+            }
+            // Now clear the inheritable set
+            state.inheritable.clear();
+            state.set_current().unwrap();
+            // The ambient set should be automatically cleared
+            assert_eq!(probe().unwrap(), CapSet::empty());
+            // And trying to raise any capability in the ambient set will now fail
+            for cap in supported_caps {
+                assert_eq!(raise(cap).unwrap_err().code(), libc::EPERM);
+            }
+
+            // Restore the original capability state at the end
+            orig_state.set_current().unwrap();
+
             // Raise all the capabilities that were in there originally
             for cap in orig_caps.iter() {
                 raise(cap).unwrap();
