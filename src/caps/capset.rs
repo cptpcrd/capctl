@@ -275,14 +275,10 @@ macro_rules! capset {
         $crate::caps::CapSet::empty()
     };
 
-    ($($caps:expr),*) => {
+    ($($caps:expr),+ $(,)?) => {
         $crate::caps::CapSet::from_bitmask_truncate(
             0 $(| (1u64 << ($caps as $crate::caps::Cap as u8)))*
         )
-    };
-
-    ($($caps:expr,)*) => {
-        $crate::capset!($($caps),*)
     };
 }
 
