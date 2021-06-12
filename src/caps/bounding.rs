@@ -32,6 +32,7 @@ fn read_raw(cap: libc::c_ulong) -> Option<bool> {
 /// Check if the given capability is raised in the current thread's bounding capability set.
 ///
 /// This is an alias of [`read()`](./fn.read.html).
+#[deprecated(since = "0.2.1", note = "use `read()` instead")]
 #[inline]
 pub fn is_set(cap: Cap) -> Option<bool> {
     read(cap)
@@ -124,7 +125,7 @@ mod tests {
     #[test]
     fn test_bounding() {
         probe();
-        is_set(Cap::CHOWN).unwrap();
+        read(Cap::CHOWN).unwrap();
     }
 
     #[test]
