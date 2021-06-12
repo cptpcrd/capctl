@@ -317,7 +317,9 @@ mod tests {
             assert_eq!(Cap::from_u8(i).unwrap() as u8, i);
         }
 
-        assert_eq!(Cap::from_u8(NUM_CAPS), None);
+        for i in NUM_CAPS..=u8::MAX {
+            assert_eq!(Cap::from_u8(i), None);
+        }
     }
 
     #[test]
