@@ -31,7 +31,9 @@ fn raw_set_name(name: &[u8]) -> crate::Result<()> {
         name.as_ptr()
     };
 
-    unsafe { crate::raw_prctl(libc::PR_SET_NAME, ptr as libc::c_ulong, 0, 0, 0) }?;
+    unsafe {
+        crate::raw_prctl(libc::PR_SET_NAME, ptr as libc::c_ulong, 0, 0, 0)?;
+    }
 
     Ok(())
 }
@@ -50,8 +52,8 @@ pub fn get_name() -> crate::Result<std::ffi::OsString> {
             0,
             0,
             0,
-        )
-    }?;
+        )?;
+    }
 
     name_vec.truncate(name_vec.iter().position(|x| *x == 0).unwrap());
 
@@ -76,7 +78,9 @@ pub fn get_no_new_privs() -> crate::Result<bool> {
 /// Once this is enabled, it cannot be unset.
 #[inline]
 pub fn set_no_new_privs() -> crate::Result<()> {
-    unsafe { crate::raw_prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) }?;
+    unsafe {
+        crate::raw_prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)?;
+    }
 
     Ok(())
 }
@@ -99,7 +103,9 @@ pub fn get_keepcaps() -> crate::Result<bool> {
 /// This flag is always cleared on an `execve()`; see capabilities(7) for more details.
 #[inline]
 pub fn set_keepcaps(keep: bool) -> crate::Result<()> {
-    unsafe { crate::raw_prctl(libc::PR_SET_KEEPCAPS, keep as libc::c_ulong, 0, 0, 0) }?;
+    unsafe {
+        crate::raw_prctl(libc::PR_SET_KEEPCAPS, keep as libc::c_ulong, 0, 0, 0)?;
+    }
 
     Ok(())
 }
@@ -121,7 +127,9 @@ pub fn get_dumpable() -> crate::Result<bool> {
 /// `ptrace()`.
 #[inline]
 pub fn set_dumpable(dumpable: bool) -> crate::Result<()> {
-    unsafe { crate::raw_prctl(libc::PR_SET_DUMPABLE, dumpable as libc::c_ulong, 0, 0, 0) }?;
+    unsafe {
+        crate::raw_prctl(libc::PR_SET_DUMPABLE, dumpable as libc::c_ulong, 0, 0, 0)?;
+    }
 
     Ok(())
 }
@@ -135,7 +143,9 @@ pub fn set_dumpable(dumpable: bool) -> crate::Result<()> {
 /// (possibly processes that used the double-`fork()` trick to become daemons) die.
 #[inline]
 pub fn set_subreaper(flag: bool) -> crate::Result<()> {
-    unsafe { crate::raw_prctl(libc::PR_SET_CHILD_SUBREAPER, flag as libc::c_ulong, 0, 0, 0) }?;
+    unsafe {
+        crate::raw_prctl(libc::PR_SET_CHILD_SUBREAPER, flag as libc::c_ulong, 0, 0, 0)?;
+    }
 
     Ok(())
 }
@@ -154,8 +164,8 @@ pub fn get_subreaper() -> crate::Result<bool> {
             0,
             0,
             0,
-        )
-    }?;
+        )?;
+    }
 
     Ok(res != 0)
 }
@@ -175,8 +185,8 @@ pub fn set_pdeathsig(sig: Option<libc::c_int>) -> crate::Result<()> {
             0,
             0,
             0,
-        )
-    }?;
+        )?;
+    }
 
     Ok(())
 }
@@ -196,8 +206,8 @@ pub fn get_pdeathsig() -> crate::Result<Option<libc::c_int>> {
             0,
             0,
             0,
-        )
-    }?;
+        )?;
+    }
 
     Ok(if sig == 0 { None } else { Some(sig) })
 }
@@ -269,7 +279,9 @@ pub fn get_securebits() -> crate::Result<Secbits> {
 /// Note: Modifying the securebits with this function requires the CAP_SETPCAP capability.
 #[inline]
 pub fn set_securebits(flags: Secbits) -> crate::Result<()> {
-    unsafe { crate::raw_prctl(libc::PR_SET_SECUREBITS, flags.bits(), 0, 0, 0) }?;
+    unsafe {
+        crate::raw_prctl(libc::PR_SET_SECUREBITS, flags.bits(), 0, 0, 0)?;
+    }
 
     Ok(())
 }
@@ -300,8 +312,8 @@ pub fn set_seccomp_strict() -> crate::Result<()> {
             0,
             0,
             0,
-        )
-    }?;
+        )?;
+    }
 
     Ok(())
 }
@@ -350,7 +362,9 @@ pub fn get_timerslack() -> crate::Result<libc::c_ulong> {
 /// slack value (which is inherited from the parent). Again, prctl(2) contains more information.
 #[inline]
 pub fn set_timerslack(new_slack: libc::c_ulong) -> crate::Result<()> {
-    unsafe { crate::raw_prctl(libc::PR_SET_TIMERSLACK, new_slack, 0, 0, 0) }?;
+    unsafe {
+        crate::raw_prctl(libc::PR_SET_TIMERSLACK, new_slack, 0, 0, 0)?;
+    }
 
     Ok(())
 }
