@@ -161,8 +161,7 @@ impl Cap {
             // This basically does `mid = ceil((min + max) / 2)`.
             // If we don't do ceiling division, the way binary search works, we'll get stuck at
             // `max = min + 1` forever.
-            let sum = min + max;
-            let mid = (sum >> 1) + (sum & 1);
+            let mid = (min + max + 1) >> 1;
 
             if Self::from_u8(mid).unwrap().is_supported() {
                 min = mid;
