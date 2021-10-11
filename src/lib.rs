@@ -15,8 +15,8 @@
 //! - [`caps::Cap::is_supported()`] and [`caps::Cap::probe_supported()`] can be used to detect
 //!   that the capability is unsupported (`cap.is_supported()` will return `false`, and
 //!   `Cap::probe_supported()` will not include it in the returned set).
-//! - [`caps::CapState`] and [`FullCapState`] will never include the unsupported capability(s) in
-//!   the returned capability sets.
+//! - [`caps::CapState`] and [`caps::FullCapState`] will never include the unsupported capability(s)
+//!   in the returned capability sets.
 //! - Trying to include the unsupported capability(s) in the new permitted/effective/inheritable
 //!   sets with [`caps::CapState::set_current()`] will cause them to be silently removed from the
 //!   new sets. (This is a kernel limitation.)
@@ -37,8 +37,9 @@
 //! - If the permitted, effective, and/or inheritable capability sets of this process are modified
 //!   (in any way) using [`caps::CapState`], the unknown capability(s) will be removed from the
 //!   permitted, effective, and inheritable sets.
-//! - The following functions are the **ONLY** functions in this crate that will drop the unknown
-//!   capability(s) from the ambient/bounding sets (see their documentation for more information):
+//! - The following functions are the **ONLY** functions in this crate that can be used to remove
+//!   the unknown capability(s) from the ambient/bounding sets (see their documentation for more
+//!   information):
 //!   - [`caps::ambient::clear()`]
 //!   - [`caps::ambient::clear_unknown()`]
 //!   - [`caps::bounding::clear()`]

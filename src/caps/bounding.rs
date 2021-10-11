@@ -1,6 +1,10 @@
 use super::{Cap, CapSet};
 
 /// Drop the given capability from the current thread's bounding capability set.
+///
+/// Note that this will fail with `EPERM` if the current thread does not have `CAP_SETPCAP`, even
+/// if the given capability is already lowered. Callers may wish to use [`ensure_dropped()`]
+/// instead.
 #[inline]
 pub fn drop(cap: Cap) -> crate::Result<()> {
     unsafe { crate::raw_prctl(libc::PR_CAPBSET_DROP, cap as libc::c_ulong, 0, 0, 0) }?;
@@ -72,13 +76,15 @@ fn clear_from(low: libc::c_ulong) -> crate::Result<()> {
 
 /// Drop all capabilities supported by the kernel from the current thread's bounding capability set.
 ///
-/// This method is equivalent to the following (though it may be slightly faster):
+/// This method is roughly equivalent to the following (though it may be slightly faster):
 ///
 /// ```no_run
 /// # use capctl::*;
 /// # fn clear() -> Result<()> {
 /// for cap in Cap::iter() {
-///     bounding::drop(cap)?;
+///     if bounding::read(cap) == Some(true) {
+///         bounding::drop(cap)?;
+///     }
 /// }
 /// bounding::clear_unknown()?;
 /// # Ok(())
@@ -96,8 +102,8 @@ pub fn clear() -> crate::Result<()> {
 /// Drop all capabilities that are supported by the kernel but which this library is not aware of
 /// from the current thread's bounding capability set.
 ///
-/// For example, this code will drop all bounding capabilities (even ones not supported by the
-/// kernel) except for `CAP_SETUID`:
+/// For example, this code will drop all bounding capabilities (even ones not supported by
+/// `capctl`) except for `CAP_SETUID`:
 ///
 /// ```no_run
 /// # use capctl::*;
