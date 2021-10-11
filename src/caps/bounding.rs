@@ -61,12 +61,51 @@ pub fn probe() -> CapSet {
     set
 }
 
+/// Try to ensure that the given capability is dropped.
+///
+/// This is a helper that first tries to drop the capability. If that fails with `EPERM`, it
+/// `read()`s the capability to see if it's already lowered.
+///
+/// This function will:
+///
+/// - Return `Ok(())` if the capability is now lowered.
+/// - Fail with `EPERM` if the capability is raised and the current thread does not have
+///   `CAP_SETPCAP`.
+/// - Fail with `EINVAL` if the capability is not supported by the kernel.
+pub fn ensure_dropped(cap: Cap) -> crate::Result<()> {
+    ensure_dropped_raw(cap as _)
+}
+
+#[inline]
+fn ensure_dropped_raw(cap: libc::c_ulong) -> crate::Result<()> {
+    match unsafe { crate::raw_prctl(libc::PR_CAPBSET_DROP, cap, 0, 0, 0) } {
+        // Successfully lowered the capability
+        Ok(_) => Ok(()),
+
+        // EPERM -> we don't have CAP_SETPCAP
+        // Check the current setting of the capability to decide what to do
+        Err(e) if e.code() == libc::EPERM => match read_raw(cap) {
+            // The capability is raised -> pass up EPERM to the caller
+            Some(true) => Err(e),
+            // The capability is lowered -> we have nothing to do
+            Some(false) => Ok(()),
+            // The capability is unsupported
+            None => Err(crate::Error::from_code(libc::EINVAL)),
+        },
+
+        // Pass all other errors up to the caller
+        Err(e) => Err(e),
+    }
+}
+
 fn clear_from(low: libc::c_ulong) -> crate::Result<()> {
     for cap in low..(super::CAP_MAX as libc::c_ulong * 2) {
-        match unsafe { crate::raw_prctl(libc::PR_CAPBSET_DROP, cap, 0, 0, 0) } {
-            Ok(_) => (),
+        match ensure_dropped_raw(cap) {
+            Ok(()) => (),
+            // Unknown capability
+            // If cap is not 0, we found the last capability
             Err(e) if e.code() == libc::EINVAL && cap != 0 => return Ok(()),
-            Err(e) if e.code() == libc::EPERM && read_raw(cap) == Some(false) => (),
+            // Pass all other errors up to the caller
             Err(e) => return Err(e),
         }
     }
