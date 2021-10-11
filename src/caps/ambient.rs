@@ -146,12 +146,10 @@ mod tests {
 
             // Make sure everything is consistent
             for cap in Cap::iter() {
-                if orig_caps.has(cap) {
-                    assert_eq!(is_set(cap), Some(true));
-                } else if supported_caps.has(cap) {
-                    assert_eq!(is_set(cap), Some(false));
+                if supported_caps.has(cap) {
+                    assert_eq!(is_set(cap), Some(orig_caps.has(cap)), "{:?}", cap);
                 } else {
-                    assert_eq!(is_set(cap), None);
+                    assert_eq!(is_set(cap), None, "{:?}", cap);
                 }
             }
 

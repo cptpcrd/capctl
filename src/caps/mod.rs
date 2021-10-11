@@ -464,11 +464,7 @@ mod tests {
 
         // Check that the binary search worked properly
         for cap in Cap::iter() {
-            if supported_caps.has(cap) {
-                assert!(cap.is_supported());
-            } else {
-                assert!(!cap.is_supported());
-            }
+            assert_eq!(supported_caps.has(cap), cap.is_supported(), "{:?}", cap);
         }
     }
 }
