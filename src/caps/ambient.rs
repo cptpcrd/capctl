@@ -10,8 +10,8 @@ pub fn raise(cap: Cap) -> crate::Result<()> {
             cap as libc::c_ulong,
             0,
             0,
-        )
-    }?;
+        )?;
+    }
 
     Ok(())
 }
@@ -26,8 +26,8 @@ pub fn lower(cap: Cap) -> crate::Result<()> {
             cap as libc::c_ulong,
             0,
             0,
-        )
-    }?;
+        )?;
+    }
 
     Ok(())
 }
@@ -69,8 +69,8 @@ pub fn clear() -> crate::Result<()> {
             0,
             0,
             0,
-        )
-    }?;
+        )?;
+    }
 
     Ok(())
 }
@@ -168,7 +168,7 @@ mod tests {
             // Now test actually raising capabilities
             let orig_state = crate::caps::CapState::get_current().unwrap();
             let mut state = orig_state;
-            // To start, copy the permitted setto the inheritable set
+            // To start, copy the permitted set to the inheritable set
             state.inheritable = state.permitted;
             state.set_current().unwrap();
 
