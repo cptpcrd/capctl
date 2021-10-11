@@ -141,7 +141,9 @@ mod tests {
             .effective
             .has(crate::caps::Cap::SETPCAP)
         {
+            assert!(read(crate::caps::Cap::SETPCAP).unwrap());
             drop(crate::caps::Cap::SETPCAP).unwrap();
+            assert!(!read(crate::caps::Cap::SETPCAP).unwrap());
         } else {
             assert_eq!(
                 drop(crate::caps::Cap::SETPCAP).unwrap_err().code(),
@@ -152,26 +154,48 @@ mod tests {
 
     #[test]
     fn test_clear() {
-        if crate::caps::CapState::get_current()
-            .unwrap()
-            .effective
-            .has(crate::caps::Cap::SETPCAP)
-        {
+        let mut state = crate::caps::CapState::get_current().unwrap();
+        if state.effective.has(crate::caps::Cap::SETPCAP) || probe().is_empty() {
             clear().unwrap();
             assert_eq!(probe(), crate::caps::CapSet::empty());
+            clear().unwrap();
+            assert_eq!(probe(), crate::caps::CapSet::empty());
+
+            state.effective.drop(crate::caps::Cap::SETPCAP);
+            state.set_current().unwrap();
+            clear().unwrap();
+            assert_eq!(probe(), crate::caps::CapSet::empty());
+        } else {
+            assert_eq!(clear().unwrap_err().code(), libc::EPERM);
         }
     }
 
     #[test]
     fn test_clear_unknown() {
-        if crate::caps::CapState::get_current()
-            .unwrap()
-            .effective
-            .has(crate::caps::Cap::SETPCAP)
+        let mut state = crate::caps::CapState::get_current().unwrap();
+        if state.effective.has(crate::caps::Cap::SETPCAP)
+            || read_raw((super::super::CAP_MAX + 1) as _).is_none()
         {
+            // Either we have CAP_SETPCAP, or there are no unknown capabilities
             let orig_caps = probe();
+
             clear_unknown().unwrap();
             assert_eq!(probe(), orig_caps);
+            clear_unknown().unwrap();
+            assert_eq!(probe(), orig_caps);
+
+            // If there are unknown capabilities, the first one is NOT raised in the bounding set
+            assert!(matches!(
+                read_raw((super::super::CAP_MAX + 1) as _),
+                Some(false) | None
+            ));
+
+            state.effective.drop(crate::caps::Cap::SETPCAP);
+            state.set_current().unwrap();
+            clear_unknown().unwrap();
+            assert_eq!(probe(), orig_caps);
+        } else {
+            assert_eq!(clear_unknown().unwrap_err().code(), libc::EPERM);
         }
     }
 }
