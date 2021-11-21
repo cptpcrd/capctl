@@ -495,7 +495,7 @@ mod tests {
 
                 unsafe {
                     libc::syscall(libc::SYS_exit, 0);
-                    libc::exit(0);
+                    libc::_exit(1);
                 }
             }
             pid => {
