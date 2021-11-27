@@ -25,7 +25,7 @@ This crate has the following features (by default, only `std` is enabled):
 
 **TL;DR**: In the opinion of `capctl`'s author, `caps` adds too much abstraction and overhead.
 
-1. The kernel APIs to accesss the 5 capability sets (permitted, effective, inheritable, bounding, and ambient) are very different. However, `caps` presents a unified interface that allows for manipulating all of them the same way.
+1. The kernel APIs to access the 5 capability sets (permitted, effective, inheritable, bounding, and ambient) are very different. However, `caps` presents a unified interface that allows for manipulating all of them the same way.
 
    This is certainly more convenient to use. However, a) it minimizes the differences between the capabilities sets (something that is fundamental and must be understood to use capabilities properly), b) it allows users to write code that attempts to perform operations that are actually impossible (i.e. adding capabilities to the bounding capability set), and c) it can result in excessive syscalls (because operations that the kernel APIs allow to be performed together instead must done separately).
 
