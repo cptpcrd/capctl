@@ -369,6 +369,197 @@ pub fn set_timerslack(new_slack: libc::c_ulong) -> crate::Result<()> {
     Ok(())
 }
 
+/// Set the status of the "THP" disable flag.
+///
+/// This flag provides an easy way to disable transparent huge pages process-wide. See `prctl(2)`
+/// for more details.
+#[inline]
+pub fn set_thp_disable(disable: bool) -> crate::Result<()> {
+    unsafe {
+        crate::raw_prctl(libc::PR_SET_THP_DISABLE, disable as _, 0, 0, 0)?;
+    }
+
+    Ok(())
+}
+
+/// Get the status of the "THP" disable flag.
+///
+/// See [`set_thp_disable()`] and `prctl(2)`.
+#[inline]
+pub fn get_thp_disable() -> crate::Result<bool> {
+    let res = unsafe { crate::raw_prctl(libc::PR_GET_THP_DISABLE, 0, 0, 0, 0) }?;
+
+    Ok(res != 0)
+}
+
+/// A value that can be passed to [`set_ptracer()`].
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+pub enum Ptracer {
+    /// Clear the current process's "ptracer process ID".
+    None,
+    /// Disable the Yama LSM's `ptrace()` restrictions for the current process.
+    Any,
+    /// Allow the specified process to `ptrace()` the current process (in addition to the current
+    /// process's direct ancestors).
+    Pid(libc::pid_t),
+}
+
+/// Set the calling process's "ptracer process ID".
+///
+/// Normally, if the Yama LSM is enabled and in "restricted ptrace" mode (i.e.
+/// `/proc/sys/kernel/yama/ptrace_scope` contains the value `1`), a process can only be `ptrace()`d
+/// by one of its direct ancestors. This function allows a process to indicate that another process
+/// can also `ptrace()` it.
+///
+/// For more information, see [`Ptracer`] and `prctl(2)`.
+#[inline]
+pub fn set_ptracer(ptracer: Ptracer) -> crate::Result<()> {
+    let pid = match ptracer {
+        Ptracer::None => 0,
+        Ptracer::Any => crate::sys::PR_SET_PTRACER_ANY,
+        Ptracer::Pid(pid) if pid <= 0 => return Err(crate::Error::from_code(libc::EINVAL)),
+        Ptracer::Pid(pid) => pid as libc::c_ulong,
+    };
+
+    unsafe {
+        crate::raw_prctl(libc::PR_SET_PTRACER, pid, 0, 0, 0)?;
+    }
+    Ok(())
+}
+
+/// The possible memory corruption kill policies.
+///
+/// See [`get_mce_kill()`] and [`set_mce_kill()`] for usage.
+///
+/// For more detailed information, see `prctl(2)`.
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+#[repr(i32)]
+pub enum MceKill {
+    /// When irrecoverable corruption is detected, immediately kill this thread if it has the
+    /// corrupted page mapped.
+    Early = libc::PR_MCE_KILL_EARLY,
+    /// When irrecoverable corruption is detected, kill this thread if it tries to access the
+    /// corrupted page.
+    Late = libc::PR_MCE_KILL_LATE,
+    /// Follow the system-wide default action specified in `/proc/sys/vm/memory_failure_early_kill`
+    /// if irrecoverable corruption is detected.
+    Default = libc::PR_MCE_KILL_DEFAULT,
+}
+
+/// Set the current thread's memory corruption kill policy.
+///
+/// See [`MceKill`] for the different policies that can be used.
+///
+/// This policy is inherited by children.
+#[inline]
+pub fn set_mce_kill(policy: MceKill) -> crate::Result<()> {
+    unsafe {
+        crate::raw_prctl(
+            libc::PR_MCE_KILL,
+            libc::PR_MCE_KILL_SET as _,
+            policy as _,
+            0,
+            0,
+        )?;
+    }
+
+    Ok(())
+}
+
+/// Get the current thread's memory corruption kill policy.
+///
+/// See [`set_mce_kill()`] for more information.
+#[inline]
+pub fn get_mce_kill() -> crate::Result<MceKill> {
+    let res = unsafe { crate::raw_prctl(libc::PR_MCE_KILL_GET, 0, 0, 0, 0) }?;
+
+    Ok(match res {
+        libc::PR_MCE_KILL_EARLY => MceKill::Early,
+        libc::PR_MCE_KILL_LATE => MceKill::Late,
+        libc::PR_MCE_KILL_DEFAULT => MceKill::Default,
+        _ => unreachable!(),
+    })
+}
+
+/// Get this thread's `clear_child_tid` address.
+///
+/// See `prctl(2)`, `set_tid_address(2)`, and `clone(2)` for more information.
+///
+/// Note: This function accounts for the 32-bit issues on x86 and MIPS that `prctl(2)` warns about.
+#[inline]
+pub fn get_tid_address() -> crate::Result<*mut libc::c_int> {
+    cfg_if::cfg_if! {
+        if #[cfg(any(target_arch = "x86", target_arch = "mips"))] {
+            // On the 64-bit versions of these arches, there is no 32-bit compatibility code, so the
+            // kernel writes out a 64-bit pointer. We need to handle this properly.
+
+            let mut buf = 0u64;
+            unsafe {
+                crate::raw_prctl(libc::PR_GET_TID_ADDRESS, &mut buf as *mut _ as _, 0, 0, 0)?;
+            }
+
+            let addr = if cfg!(target_endian = "big") {
+                // We have 2 possible cases:
+                //
+                // On real 32-bit systems (kernel writes 32-bit pointers):
+                // 0xDEADBEEF_00000000
+                //   ^^^^^^^^ ^^^^^^^^
+                //   |        |
+                //   |        zeroes from when we initialize `buf`
+                //   |
+                //   address (since the kernel only writes the first 32 bits)
+                //
+                // On 64-bit systems (kernel writes 64-bit pointers):
+                // 0x00000000_DEADBEEF
+                //   ^^^^^^^^ ^^^^^^^^
+                //   |        |
+                //   |        lower 32 bits (the real address)
+                //   |
+                //   upper 32 bits of the address (should be zero since we're a 32-bit process)
+
+                if buf & 0xFFFF_FFFF == 0 {
+                    // If the lower 32 bits are 0, take the upper 32 bits
+                    (buf >> 32) as *mut libc::c_int
+                } else {
+                    // If the lower 32 bits are nonzero, take them
+                    debug_assert_eq!(buf >> 32, 0, "address too large");
+                    buf as *mut libc::c_int
+                }
+            } else {
+                // We have 2 possible cases:
+                //
+                // On real 32-bit systems (kernel writes 32-bit pointers):
+                // 0xFEEBDAED_00000000
+                //   ^^^^^^^^ ^^^^^^^^
+                //   |        |
+                //   |        zeroes from when we initialize `buf`
+                //   |
+                //   address (since the kernel only writes the first 32 bits)
+                //
+                // On 64-bit systems (kernel writes 64-bit pointers):
+                // 0xFEEBDAED_00000000
+                //   ^^^^^^^^ ^^^^^^^^
+                //   |        |
+                //   |        upper 32 bits of the address (should be zero since we're 32-bit)
+                //   |
+                //   lower 32 bits (the real address)
+                //
+                // In both cases, we can just cast it to a 32-bit pointer
+
+                debug_assert_eq!(buf >> 32, 0, "address too large");
+                buf as *mut libc::c_int
+            };
+        } else {
+            let mut addr = core::ptr::null_mut();
+            unsafe {
+                crate::raw_prctl(libc::PR_GET_TID_ADDRESS, &mut addr as *mut _ as _, 0, 0, 0)?;
+            }
+        }
+    }
+
+    Ok(addr)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -531,5 +722,84 @@ mod tests {
         })
         .join()
         .unwrap();
+    }
+
+    #[test]
+    fn test_thp_disable() {
+        let orig_thp_disable = get_thp_disable().unwrap();
+
+        set_thp_disable(true).unwrap();
+        assert!(get_thp_disable().unwrap());
+        set_thp_disable(false).unwrap();
+        assert!(!get_thp_disable().unwrap());
+
+        set_thp_disable(orig_thp_disable).unwrap();
+        assert_eq!(get_thp_disable().unwrap(), orig_thp_disable);
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn test_ptracer() {
+        // Invalid value; disallowed by our wrapper
+        assert_eq!(
+            set_ptracer(Ptracer::Pid(0)).unwrap_err().code(),
+            libc::EINVAL
+        );
+        assert_eq!(
+            set_ptracer(Ptracer::Pid(-1)).unwrap_err().code(),
+            libc::EINVAL
+        );
+
+        if std::path::Path::new("/proc/sys/kernel/yama/ptrace_scope").exists() {
+            // The Yama LSM is enabled, and set_ptracer() will actually work
+
+            // Nonexistent process; denied by the Yama LSM
+            assert_eq!(
+                set_ptracer(Ptracer::Pid(libc::pid_t::MAX))
+                    .unwrap_err()
+                    .code(),
+                libc::EINVAL
+            );
+
+            // Setting it to a real process works
+            set_ptracer(Ptracer::Pid(1)).unwrap();
+            set_ptracer(Ptracer::Pid(unsafe { libc::getppid() })).unwrap();
+            set_ptracer(Ptracer::Pid(unsafe { libc::getpid() })).unwrap();
+
+            // Clear it at the end
+            set_ptracer(Ptracer::None).unwrap();
+        } else {
+            // Every call fails with EINVAL
+            for &pid in unsafe { [libc::pid_t::MAX, 1, libc::getppid(), libc::getpid()] }.iter() {
+                assert_eq!(
+                    set_ptracer(Ptracer::Pid(pid)).unwrap_err().code(),
+                    libc::EINVAL
+                );
+            }
+
+            assert_eq!(set_ptracer(Ptracer::None).unwrap_err().code(), libc::EINVAL);
+        }
+    }
+
+    #[test]
+    fn test_mce_kill() {
+        let orig_mce_kill = get_mce_kill().unwrap();
+
+        set_mce_kill(MceKill::Early).unwrap();
+        assert_eq!(get_mce_kill().unwrap(), MceKill::Early);
+        set_mce_kill(MceKill::Late).unwrap();
+        assert_eq!(get_mce_kill().unwrap(), MceKill::Late);
+        set_mce_kill(MceKill::Default).unwrap();
+        assert_eq!(get_mce_kill().unwrap(), MceKill::Default);
+
+        set_mce_kill(orig_mce_kill).unwrap();
+        assert_eq!(get_mce_kill().unwrap(), orig_mce_kill);
+    }
+
+    #[test]
+    fn test_get_tid_address() {
+        // We don't know for sure how the clear_child_tid address is being used, so we can't check
+        // it
+        get_tid_address().unwrap();
     }
 }

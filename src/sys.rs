@@ -23,6 +23,8 @@ pub struct cap_user_data_t {
 // code changes to caps/capstate.rs
 pub const _LINUX_CAPABILITY_VERSION_3: u32 = 0x2008_0522;
 
+pub const PR_SET_PTRACER_ANY: libc::c_ulong = -1i32 as libc::c_ulong;
+
 // File capabilities constants
 #[cfg(feature = "std")]
 mod file {
