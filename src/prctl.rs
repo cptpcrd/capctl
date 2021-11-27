@@ -249,8 +249,8 @@ bitflags::bitflags! {
         /// Locks the `KEEP_CAPS` flag so it cannot be changed.
         ///
         /// Note: The `KEEP_CAPS` flag is always cleared across `execve()`, even if it is "locked"
-        /// using this flag. As a result, this flag is mainly useful for locking the `KEEP_CAPS` in
-        /// the "off" setting.
+        /// using this flag. As a result, this flag is mainly useful for locking the `KEEP_CAPS`
+        /// flag in the "off" setting.
         const KEEP_CAPS_LOCKED = 0x20;
 
         /// Disallows raising ambient capabilities.
