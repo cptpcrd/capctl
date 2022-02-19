@@ -66,8 +66,8 @@ macro_rules! define_cap {
         // Some other useful values derived from LAST_CAP
         const CAP_MAX: u8 = LAST_CAP as u8;
         const NUM_CAPS: u8 = CAP_MAX + 1;
-        // Shift to the left, then subtract one to get the lower bits filled with ones.
-        const CAP_BITMASK: u64 = (1u64 << NUM_CAPS) - 1;
+        // Get the lower bits filled with ones
+        const CAP_BITMASK: u64 = u64::MAX >> (63 - CAP_MAX);
 
         static CAP_NAMES: [&str; NUM_CAPS as usize] = [$(stringify!($name),)+];
     };
@@ -172,7 +172,7 @@ impl Cap {
             debug_assert!(max >= min);
         }
 
-        CapSet::from_bitmask_truncate((1 << (min + 1)) - 1)
+        CapSet::from_bitmask_truncate(u64::MAX >> (63 - min))
     }
 
     pub(crate) fn name(self) -> &'static str {
