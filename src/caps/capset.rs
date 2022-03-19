@@ -114,6 +114,22 @@ impl CapSet {
         }
     }
 
+    /// Return whether this set is a subset of another capability set.
+    ///
+    /// This returns `true` if all of the capabilities in `self` are present in `other`.
+    #[inline]
+    pub const fn issubset(&self, other: Self) -> bool {
+        (self.bits & !other.bits) == 0
+    }
+
+    /// Return whether this set is a superset of another capability set.
+    ///
+    /// This returns `true` if all of the capabilities in `other` are present in `self`.
+    #[inline]
+    pub const fn issuperset(&self, other: Self) -> bool {
+        other.issubset(*self)
+    }
+
     /// WARNING: This is an internal method and its signature may change in the future. Use [the
     /// `capset!()` macro] instead.
     ///
@@ -690,5 +706,33 @@ mod tests {
             CHOWN_SYSLOG_SET,
             [Cap::CHOWN, Cap::SYSLOG].iter().cloned().collect()
         );
+    }
+
+    #[test]
+    fn test_capset_subset() {
+        assert!(capset!().issubset(capset!()));
+        assert!(capset!().issubset(capset!(Cap::CHOWN)));
+        assert!(capset!().issubset(capset!(Cap::CHOWN, Cap::SYSLOG)));
+        assert!(capset!(Cap::CHOWN).issubset(capset!(Cap::CHOWN, Cap::SYSLOG)));
+        assert!(capset!(Cap::SYSLOG).issubset(capset!(Cap::CHOWN, Cap::SYSLOG)));
+
+        assert!(!capset!(Cap::CHOWN).issubset(capset!()));
+        assert!(!capset!(Cap::CHOWN).issubset(capset!(Cap::SYSLOG)));
+        assert!(!capset!(Cap::CHOWN, Cap::SYSLOG).issubset(capset!(Cap::CHOWN)));
+        assert!(!capset!(Cap::CHOWN, Cap::SYSLOG).issubset(capset!(Cap::SYSLOG)));
+    }
+
+    #[test]
+    fn test_capset_superset() {
+        assert!(capset!().issuperset(capset!()));
+        assert!(capset!(Cap::CHOWN).issuperset(capset!()));
+        assert!(capset!(Cap::CHOWN, Cap::SYSLOG).issuperset(capset!()));
+        assert!(capset!(Cap::CHOWN, Cap::SYSLOG).issuperset(capset!(Cap::CHOWN)));
+        assert!(capset!(Cap::CHOWN, Cap::SYSLOG).issuperset(capset!(Cap::SYSLOG)));
+
+        assert!(!capset!().issuperset(capset!(Cap::CHOWN)));
+        assert!(!capset!(Cap::SYSLOG).issuperset(capset!(Cap::CHOWN)));
+        assert!(!capset!(Cap::CHOWN).issuperset(capset!(Cap::CHOWN, Cap::SYSLOG)));
+        assert!(!capset!(Cap::SYSLOG).issuperset(capset!(Cap::CHOWN, Cap::SYSLOG)));
     }
 }
