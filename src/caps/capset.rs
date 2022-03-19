@@ -260,6 +260,8 @@ impl fmt::Debug for CapSet {
 /// assert_eq!(capset!(), CapSet::empty());
 /// assert_eq!(capset!(Cap::CHOWN), [Cap::CHOWN].iter().cloned().collect());
 /// assert_eq!(capset!(Cap::CHOWN, Cap::SYSLOG), [Cap::CHOWN, Cap::SYSLOG].iter().cloned().collect());
+///
+/// const CAPS: CapSet = capset!(Cap::CHOWN);
 /// ```
 ///
 /// Note that you cannot use raw integers, only `Cap` variants. For example, this is not allowed:
