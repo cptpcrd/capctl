@@ -157,16 +157,22 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
                 f.write_str("all")?;
             }
         } else {
+            // Note: This must be big enough to hold the name of any capability
+            let mut buf = [0u8; 30];
+
             for (i, cap) in caps.iter().enumerate() {
-                if i != 0 {
-                    f.write_char(',')?;
-                }
+                f.write_str(if i == 0 { "cap_" } else { ",cap_" })?;
 
-                f.write_str("cap_")?;
+                // Copy the capability's name into the buffer
+                let orig_name = cap.name().as_bytes();
+                let name = &mut buf[..orig_name.len()];
+                name.copy_from_slice(orig_name);
 
-                for ch in cap.name().chars() {
-                    f.write_char(ch.to_ascii_lowercase())?;
-                }
+                // Safety: We just copied this byte-for-byte from a valid UTF-8 string
+                let name = unsafe { core::str::from_utf8_unchecked_mut(name) };
+                // Convert it to lowercase and write it
+                name.make_ascii_lowercase();
+                f.write_str(name)?;
             }
         }
 

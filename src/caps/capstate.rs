@@ -330,4 +330,24 @@ mod tests {
             assert_eq!(s.parse::<CapState>().unwrap(), *state, "{:?}", s);
         }
     }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn test_capstate_display_names() {
+        // cap_text::caps_to_text() uses a static buffer to hold the capability names, and if a new
+        // capability with a long name is added then it could overflow that buffer. This test
+        // ensures that won't happen by forcing caps_to_text() to print out all the capability
+        // names and make sure they all print properly.
+
+        for cap in Cap::iter() {
+            let state = CapState {
+                permitted: capset!(cap),
+                effective: capset!(cap),
+                inheritable: capset!(cap),
+            };
+
+            let expected = format!("cap_{}=eip", cap.name().to_lowercase());
+            assert_eq!(state.to_string(), expected);
+        }
+    }
 }
