@@ -481,6 +481,114 @@ pub fn get_mce_kill() -> crate::Result<MceKill> {
     })
 }
 
+/// The different types of speculation misfeatures that can be passed to [`get_speculation_ctrl()`]
+/// and [`set_speculation_ctrl()`].
+///
+/// For information see `prctl(2)` or the kernel documentation.
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+#[repr(i32)]
+pub enum SpecVariant {
+    /// The speculation store bypass misfeature. Added in Linux 4.17; only present on x86, x86_64,
+    /// and PowerPC.
+    StoreBypass = crate::sys::PR_SPEC_STORE_BYPASS,
+    /// The indirect branch speculation misfeature. Added in Linux 4.20; only present on x86 and
+    /// x86_64.
+    IndirectBranch = crate::sys::PR_SPEC_INDIRECT_BRANCH,
+    /// If this feature is enabled, flush the L1 data cache on context switches out of the current
+    /// task. Does not address a specific vulnerability, but guards against future attacks.
+    ///
+    /// Added in Linux 5.15; only present on x86 and x86_64.
+    ///
+    /// If the CPU does not have support for flushing the L1D cache, [`get_speculation_ctrl()`]
+    /// will return [`SpecFlags::FORCE_DISABLE`], and [`set_speculation_ctrl()`] will fail with
+    /// `EPERM`.
+    ///
+    /// Note: This feature behaves unlike other `SpecVariant`s. Namely, passing
+    /// [`SpecFlags::ENABLE`] **enables mitigation** instead of enabling the misfeature.
+    L1DFlush = crate::sys::PR_SPEC_L1D_FLUSH,
+}
+
+bitflags::bitflags! {
+    /// Flags indicating the state of the "speculation misfeature". See [`get_speculation_ctrl()`]
+    /// and [`set_speculation_ctrl()`].
+    pub struct SpecFlags: libc::c_int {
+        /// Indicates that mitigation for the specified variant can be controlled using
+        /// [`set_speculation_ctrl()`].
+        ///
+        /// This flag may be set in the return value of [`get_speculation_ctrl()`]; it should not
+        /// be passed to [`set_speculation_ctrl()`].
+        const PRCTL = crate::sys::PR_SPEC_PRCTL;
+
+        /// Speculation attacks are enabled; mitigation is disabled.
+        ///
+        /// (Note that this is reversed for [`SpecVariant::L1DFlush`])
+        const ENABLE = crate::sys::PR_SPEC_ENABLE;
+        /// Speculation attacks are disabled; mitigation is enabled.
+        ///
+        /// (Note that this is reversed for [`SpecVariant::L1DFlush`])
+        const DISABLE = crate::sys::PR_SPEC_DISABLE;
+
+        /// Same as [`Self::DISABLE`], but "locks" the value so it cannot be undone later.
+        ///
+        /// This flag is only supported for some of the variants. If it is passed to
+        /// [`set_speculation_ctrl()`] for a variant that does not support it, the call will fail
+        /// with `ERANGE`.
+        const FORCE_DISABLE = crate::sys::PR_SPEC_FORCE_DISABLE;
+        /// Same as [`Self::DISABLE`], but will be cleared on an `execve()`.
+        ///
+        /// This flag is only supported since Linux 5.1, and only for some of the variants. If it
+        /// is passed to [`set_speculation_ctrl()`] for a variant that does not support it, the
+        /// call will fail with `ERANGE`.
+        const DISABLE_NOEXEC = crate::sys::PR_SPEC_DISABLE_NOEXEC;
+    }
+}
+
+/// Get the current state of the "speculation misfeature".
+///
+/// `variant` indicates the speculation "misfeature" whose status should be queried. If this
+/// function returns `EINVAL` or `ENODEV`, then either the kernel is unaware of the misfeature or
+/// the CPU architecture is not affected by this type of misfeature.
+///
+/// This function returns "flags" which indicate the current status. If the flags are empty (i.e.
+/// `.is_empty()` returns true) then the CPU is not affected by this misfeature. Otherwise, the
+/// returned flags indicate the current state and whether it can be controlled by the user. See
+/// [`SpecFlags`] for more information.
+#[inline]
+pub fn get_speculation_ctrl(variant: SpecVariant) -> crate::Result<SpecFlags> {
+    let res =
+        unsafe { crate::raw_prctl(crate::sys::PR_GET_SPECULATION_CTRL, variant as _, 0, 0, 0) }?;
+
+    Ok(SpecFlags::from_bits_truncate(res))
+}
+
+/// Set the per-thread state of the "speculation misfeature".
+///
+/// `variant` indicates the speculation "misfeature" whose status should be modified. If this
+/// function returns `EINVAL` or `ENODEV`, then either the kernel is unaware of the misfeature or
+/// the CPU architecture is not affected by this type of misfeature.
+///
+/// `control` indicates how to modify the mitigation. Any single one of the [`SpecFlags`] (except
+/// for [`SpecFlags::PRCTL`]) can be passed. However, they should NOT be ORed together; this will
+/// cause the call to fail with `ERANGE`.
+///
+/// This function may fail with `EINVAL` or `ENODEV` if the kernel is unaware of the misfeature or
+/// the CPU architecture is not affected by this type of misfeature, or with `EPERM` or `ENXIO` if
+/// the status cannot be modified (e.g. mitigation was forcibly disabled at boot).
+#[inline]
+pub fn set_speculation_ctrl(variant: SpecVariant, control: SpecFlags) -> crate::Result<()> {
+    unsafe {
+        crate::raw_prctl(
+            crate::sys::PR_SET_SPECULATION_CTRL,
+            variant as _,
+            control.bits() as _,
+            0,
+            0,
+        )?;
+    }
+
+    Ok(())
+}
+
 /// Get this thread's `clear_child_tid` address.
 ///
 /// See `prctl(2)`, `set_tid_address(2)`, and `clone(2)` for more information.

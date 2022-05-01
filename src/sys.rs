@@ -25,6 +25,19 @@ pub const _LINUX_CAPABILITY_VERSION_3: u32 = 0x2008_0522;
 
 pub const PR_SET_PTRACER_ANY: libc::c_ulong = -1i32 as libc::c_ulong;
 
+pub const PR_GET_SPECULATION_CTRL: libc::c_int = 52;
+pub const PR_SET_SPECULATION_CTRL: libc::c_int = 53;
+
+pub const PR_SPEC_STORE_BYPASS: libc::c_int = 0;
+pub const PR_SPEC_INDIRECT_BRANCH: libc::c_int = 1;
+pub const PR_SPEC_L1D_FLUSH: libc::c_int = 2;
+
+pub const PR_SPEC_PRCTL: libc::c_int = 1 << 0;
+pub const PR_SPEC_ENABLE: libc::c_int = 1 << 1;
+pub const PR_SPEC_DISABLE: libc::c_int = 1 << 2;
+pub const PR_SPEC_FORCE_DISABLE: libc::c_int = 1 << 3;
+pub const PR_SPEC_DISABLE_NOEXEC: libc::c_int = 1 << 4;
+
 // File capabilities constants
 #[cfg(feature = "std")]
 mod file {
