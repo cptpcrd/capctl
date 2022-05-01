@@ -224,6 +224,16 @@ mod tests {
 
         assert_eq!(
             CapState {
+                permitted: !capset!(),
+                effective: !capset!(),
+                inheritable: !capset!(),
+            }
+            .to_string(),
+            "=eip",
+        );
+
+        assert_eq!(
+            CapState {
                 permitted: capset!(Cap::CHOWN),
                 effective: capset!(Cap::CHOWN),
                 inheritable: capset!(Cap::CHOWN),

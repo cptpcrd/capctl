@@ -136,6 +136,14 @@ impl std::error::Error for ParseCapsError {}
 pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result {
     if state == CapState::empty() {
         return f.write_char('=');
+    } else if state
+        == (CapState {
+            effective: !CapSet::empty(),
+            permitted: !CapSet::empty(),
+            inheritable: !CapSet::empty(),
+        })
+    {
+        return f.write_str("=eip");
     }
 
     use core::fmt::Write;
