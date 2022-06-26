@@ -669,6 +669,77 @@ pub fn get_tid_address() -> crate::Result<*mut libc::c_int> {
     Ok(addr)
 }
 
+/// Enable all performance counters attached to the current process.
+///
+/// This is the opposite of [`disable_perf_events()].
+#[inline]
+pub fn enable_perf_events() -> crate::Result<()> {
+    unsafe {
+        crate::raw_prctl(
+            libc::PR_TASK_PERF_EVENTS_ENABLE,
+            0,
+            0,
+            0,
+            0,
+        )?;
+    }
+
+    Ok(())
+}
+
+/// Disable all performance counters attached to the current process.
+///
+/// Performance counters are created using perf_event_open(2) and can be used to measure performance
+/// information.
+///
+/// See prctl(2) for more information.
+#[inline]
+pub fn disable_perf_events() -> crate::Result<()> {
+    unsafe {
+        crate::raw_prctl(
+            libc::PR_TASK_PERF_EVENTS_DISABLE,
+            0,
+            0,
+            0,
+            0,
+        )?;
+    }
+
+    Ok(())
+}
+
+/// Get the "I/O flusher" flag for the current process.
+///
+/// See [`set_io_flusher()`] for more details.
+#[inline]
+pub fn get_io_flusher() -> crate::Result<bool> {
+    let res = unsafe { crate::raw_prctl(crate::sys::PR_GET_IO_FLUSHER, 0, 0, 0, 0) }?;
+
+    Ok(res != 0)
+}
+
+/// Set the "I/O flusher" flag for the current process. (Linux 5.6+)
+///
+/// User processes which are involved in filesystem I/O (e.g. FUSE daemons) and which may allocate
+/// memory while handling requests should set this flag to `true`. This gives the process special
+/// treatment when it tries to allocate memory; see prctl(2) for details.
+///
+/// Changing the I/O flusher status requires the `CAP_SYS_RESOURCE` capability.
+#[inline]
+pub fn set_io_flusher(flusher: bool) -> crate::Result<()> {
+    unsafe {
+        crate::raw_prctl(
+            crate::sys::PR_SET_IO_FLUSHER,
+            flusher as libc::c_ulong,
+            0,
+            0,
+            0,
+        )?;
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
