@@ -237,10 +237,11 @@ bitflags::bitflags! {
         /// This flag is cleared across `execve()` calls.
         ///
         /// Note: [`get_keepcaps()`] and [`set_keepcaps()`] provide the same functionality as this
-        /// flag (setting the flag via one method will change its value as perceived by the other,
-        /// and vice versa). However, [`set_keepcaps()`] does not require CAP_SETPCAP; changing the
-        /// securebits does. As a result, if you only need to manipulate the `KEEP_CAPS` flag, you
-        /// may wish to instead use [`get_keepcaps()`] and [`set_keepcaps()`].
+        /// flag (setting the flag via [`set_keepcaps()`] will change its value as perceived by
+        /// [`get_securebits()`], and vice versa). However, [`set_keepcaps()`] does not require
+        /// CAP_SETPCAP; changing the securebits does. As a result, if you only need to manipulate
+        /// the `KEEP_CAPS` flag, you may wish to instead use [`get_keepcaps()`] and
+        /// [`set_keepcaps()`].
         ///
         /// [`get_keepcaps()`]: ./fn.get_keepcaps.html
         /// [`set_keepcaps()`]: ./fn.set_keepcaps.html
