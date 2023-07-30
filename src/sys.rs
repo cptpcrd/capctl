@@ -41,6 +41,11 @@ pub const PR_SPEC_DISABLE_NOEXEC: libc::c_int = 1 << 4;
 pub const PR_SET_IO_FLUSHER: libc::c_int = 57;
 pub const PR_GET_IO_FLUSHER: libc::c_int = 58;
 
+pub const PR_SET_MDWE: libc::c_int = 65;
+pub const PR_GET_MDWE: libc::c_int = 66;
+
+pub const PR_MDWE_REFUSE_EXEC_GAIN: libc::c_int = 1;
+
 // File capabilities constants
 #[cfg(feature = "std")]
 mod file {
