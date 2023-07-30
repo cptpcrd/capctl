@@ -728,6 +728,40 @@ pub fn set_io_flusher(flusher: bool) -> crate::Result<()> {
     Ok(())
 }
 
+bitflags::bitflags! {
+    /// Flags controlling memory-deny-write-execute behavior.
+    ///
+    /// Can be used with [`set_mdwe()`] and [`get_mdwe()`].
+    pub struct MDWEFlags: libc::c_int {
+        /// Disallow creating a mapping which is executable and was at some point writeable.
+        ///
+        /// This blocks not only `mmap(PROT_READ | PROT_WRITE | PROT_EXEC)`, but e.g.
+        /// `mmap(PROT_READ | PROT_WRITE); mprotect(PROT_EXEC)`.
+        ///
+        /// This flag cannot be unset once it is set.
+        const REFUSE_EXEC_GAIN = crate::sys::PR_MDWE_REFUSE_EXEC_GAIN;
+    }
+}
+
+/// Set the memory-deny-write execute flags.
+///
+/// Currently there is only one flag ([`MDWEFlags::REFUSE_EXEC_GAIN`]), which disallows creating
+/// executable mappings that are/were writable.
+#[inline]
+pub fn set_mdwe(flags: MDWEFlags) -> crate::Result<()> {
+    unsafe { crate::raw_prctl(crate::sys::PR_SET_MDWE, flags.bits() as _, 0, 0, 0) }?;
+    Ok(())
+}
+
+/// Get the memory-deny-write execute flags.
+///
+/// See [`set_mdwe()`] for more details.
+#[inline]
+pub fn get_mdwe() -> crate::Result<MDWEFlags> {
+    let res = unsafe { crate::raw_prctl(crate::sys::PR_GET_MDWE, 0, 0, 0, 0) }?;
+    Ok(MDWEFlags::from_bits_truncate(res))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -969,5 +1003,52 @@ mod tests {
         // We don't know for sure how the clear_child_tid address is being used, so we can't check
         // it
         get_tid_address().unwrap();
+    }
+
+    #[test]
+    fn test_mdwe() {
+        match get_mdwe() {
+            Ok(orig_mdwe) => {
+                if !orig_mdwe.contains(MDWEFlags::REFUSE_EXEC_GAIN) {
+                    set_mdwe(orig_mdwe | MDWEFlags::REFUSE_EXEC_GAIN).unwrap();
+                    assert_eq!(get_mdwe().unwrap(), orig_mdwe | MDWEFlags::REFUSE_EXEC_GAIN);
+                }
+                assert_eq!(
+                    set_mdwe(MDWEFlags::empty()).unwrap_err().code(),
+                    libc::EPERM
+                );
+
+                unsafe {
+                    // mmap(PROT_READ | PROT_WRITE | PROT_EXEC) fails
+                    let ptr = libc::mmap(
+                        core::ptr::null_mut(),
+                        1,
+                        libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
+                        libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
+                        -1,
+                        0,
+                    );
+                    assert_eq!(ptr, libc::MAP_FAILED);
+
+                    // mmap(PROT_READ | PROT_WRITE) followed by mprotect(PROT_EXEC) fails
+                    let ptr = libc::mmap(
+                        core::ptr::null_mut(),
+                        1,
+                        libc::PROT_READ | libc::PROT_WRITE,
+                        libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
+                        -1,
+                        0,
+                    );
+                    assert_ne!(ptr, libc::MAP_FAILED);
+                    let res = libc::mprotect(ptr, 1, libc::PROT_EXEC);
+                    assert_eq!(res, -1);
+                    assert_eq!(crate::Error::last().code(), libc::EACCES);
+                    libc::munmap(ptr, 1);
+                }
+            }
+            // EINVAL -> kernel does not support PR_GET_MDWE
+            Err(e) if e.code() == libc::EINVAL => (),
+            Err(e) => panic!("{}", e),
+        }
     }
 }
