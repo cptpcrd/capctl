@@ -675,13 +675,7 @@ pub fn get_tid_address() -> crate::Result<*mut libc::c_int> {
 #[inline]
 pub fn enable_perf_events() -> crate::Result<()> {
     unsafe {
-        crate::raw_prctl(
-            libc::PR_TASK_PERF_EVENTS_ENABLE,
-            0,
-            0,
-            0,
-            0,
-        )?;
+        crate::raw_prctl(libc::PR_TASK_PERF_EVENTS_ENABLE, 0, 0, 0, 0)?;
     }
 
     Ok(())
@@ -696,13 +690,7 @@ pub fn enable_perf_events() -> crate::Result<()> {
 #[inline]
 pub fn disable_perf_events() -> crate::Result<()> {
     unsafe {
-        crate::raw_prctl(
-            libc::PR_TASK_PERF_EVENTS_DISABLE,
-            0,
-            0,
-            0,
-            0,
-        )?;
+        crate::raw_prctl(libc::PR_TASK_PERF_EVENTS_DISABLE, 0, 0, 0, 0)?;
     }
 
     Ok(())
