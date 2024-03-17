@@ -146,6 +146,8 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
         return f.write_str("=eip");
     }
 
+    let orig_state = state;
+
     use core::fmt::Write;
 
     fn format_capset(f: &mut fmt::Formatter, caps: &CapSet, prefix_ch: char) -> fmt::Result {
@@ -183,6 +185,7 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
 
     fn format_part(
         f: &mut fmt::Formatter,
+        orig_state: &CapState,
         state: &mut CapState,
         drop_state: &mut CapState,
         first: &mut bool,
@@ -226,17 +229,17 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
 
         if effective {
             f.write_char('e')?;
-            drop_state.effective |= caps - state.effective;
+            drop_state.effective |= caps - orig_state.effective;
             state.effective -= caps;
         }
         if inheritable {
             f.write_char('i')?;
-            drop_state.inheritable |= caps - state.inheritable;
+            drop_state.inheritable |= caps - orig_state.inheritable;
             state.inheritable -= caps;
         }
         if permitted {
             f.write_char('p')?;
-            drop_state.permitted |= caps - state.permitted;
+            drop_state.permitted |= caps - orig_state.permitted;
             state.permitted -= caps;
         }
 
@@ -295,12 +298,22 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
     // CAP_CHOWN is set, and generate `cap_chown-ep`.
     let mut drop_state = CapState::empty();
 
-    format_part(f, &mut state, &mut drop_state, &mut first, true, true, true)?;
+    format_part(
+        f,
+        &orig_state,
+        &mut state,
+        &mut drop_state,
+        &mut first,
+        true,
+        true,
+        true,
+    )?;
 
     format_part_drop(f, &mut drop_state, true, true, true)?;
 
     format_part(
         f,
+        &orig_state,
         &mut state,
         &mut drop_state,
         &mut first,
@@ -310,6 +323,7 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
     )?;
     format_part(
         f,
+        &orig_state,
         &mut state,
         &mut drop_state,
         &mut first,
@@ -319,6 +333,7 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
     )?;
     format_part(
         f,
+        &orig_state,
         &mut state,
         &mut drop_state,
         &mut first,
@@ -333,6 +348,7 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
 
     format_part(
         f,
+        &orig_state,
         &mut state,
         &mut drop_state,
         &mut first,
@@ -342,6 +358,7 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
     )?;
     format_part(
         f,
+        &orig_state,
         &mut state,
         &mut drop_state,
         &mut first,
@@ -351,6 +368,7 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
     )?;
     format_part(
         f,
+        &orig_state,
         &mut state,
         &mut drop_state,
         &mut first,
@@ -494,6 +512,24 @@ mod tests {
                 permitted: capset!(),
                 effective: !capset!(),
                 inheritable: capset!(),
+            }
+        );
+
+        assert_eq!(
+            caps_from_text("=eip cap_chown-e").unwrap(),
+            CapState {
+                permitted: !capset!(),
+                effective: !capset!(Cap::CHOWN),
+                inheritable: !capset!(),
+            }
+        );
+
+        assert_eq!(
+            caps_from_text("=eip cap_chown-eip").unwrap(),
+            CapState {
+                permitted: !capset!(Cap::CHOWN),
+                effective: !capset!(Cap::CHOWN),
+                inheritable: !capset!(Cap::CHOWN),
             }
         );
     }
