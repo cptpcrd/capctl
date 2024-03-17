@@ -47,10 +47,10 @@ jobs:
         if: matrix.target == 'i686-unknown-linux-gnu'
 
       - name: Build
-        run: cargo +${{ steps.toolchain.outputs.name }} build --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
+        run: cargo +${{ matrix.toolchain }} build --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
 
       - name: Run tests
-        run: cargo +${{ steps.toolchain.outputs.name }} test --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
+        run: cargo +${{ matrix.toolchain }} test --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
 
       - name: Run tests (in user namespace)
         run: unshare -r cargo +${{ matrix.toolchain }} test --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
