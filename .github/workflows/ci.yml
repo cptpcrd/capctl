@@ -38,27 +38,19 @@ jobs:
       - name: Set up repo
         uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.toolchain }}
-          target: ${{ matrix.target }}
+          targets: ${{ matrix.target }}
       - name: Install 32-bit glibc build dependencies
         run: sudo apt-get update && sudo apt-get -y install gcc-multilib
         if: matrix.target == 'i686-unknown-linux-gnu'
 
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: ${{ matrix.toolchain }}
-          command: build
-          args: --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
+        run: cargo +${{ steps.toolchain.outputs.name }} build --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
 
       - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: ${{ matrix.toolchain }}
-          command: test
-          args: --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
+        run: cargo +${{ steps.toolchain.outputs.name }} test --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
 
       - name: Run tests (in user namespace)
         run: unshare -r cargo +${{ matrix.toolchain }} test --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
@@ -95,17 +87,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.toolchain }}
           target: ${{ matrix.target }}
 
       - name: Install tarpaulin
-        uses: actions-rs/install@v0.1
-        with:
-          crate: cargo-tarpaulin
-          version: latest
-          use-tool-cache: true
+        run: cargo install cargo-tarpaulin
 
       - name: Run tarpaulin
         run: ${{ matrix.prefix }} cargo +${{ matrix.toolchain }} tarpaulin --verbose --out Xml --target ${{ matrix.target }} --features "${{ matrix.features }}"
