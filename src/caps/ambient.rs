@@ -164,7 +164,7 @@ mod tests {
             assert_eq!(probe().unwrap(), CapSet::empty());
 
             // Now test actually raising capabilities
-            let orig_state = crate::caps::CapState::get_current().unwrap();
+            let mut orig_state = crate::caps::CapState::get_current().unwrap();
             let mut state = orig_state;
             // To start, copy the permitted set to the inheritable set
             state.inheritable = state.permitted;
@@ -184,7 +184,8 @@ mod tests {
                 assert_eq!(raise(cap).unwrap_err().code(), libc::EPERM);
             }
 
-            // Restore the original capability state at the end
+            // Restore the original capability state at the end (to the extent we're able)
+            orig_state.inheritable &= orig_state.permitted;
             orig_state.set_current().unwrap();
 
             // Raise all the capabilities that were in there originally
