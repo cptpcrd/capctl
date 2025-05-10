@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Set up repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -85,7 +85,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -99,7 +99,7 @@ jobs:
         run: ${{ matrix.prefix }} cargo +${{ matrix.toolchain }} tarpaulin --verbose --out Xml --target ${{ matrix.target }} --features "${{ matrix.features }}"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v5
         with:
           name: ${{ matrix.toolchain }}-${{ matrix.target }}
           fail_ci_if_error: true
