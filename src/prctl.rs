@@ -913,9 +913,11 @@ mod tests {
             // The timer slack value is inherited
             assert_eq!(get_timerslack().unwrap(), orig_timerslack + 1);
 
-            // We can change it
-            set_timerslack(orig_timerslack).unwrap();
-            assert_eq!(get_timerslack().unwrap(), orig_timerslack);
+            if orig_timerslack != 0 {
+                // We can change it
+                set_timerslack(orig_timerslack).unwrap();
+                assert_eq!(get_timerslack().unwrap(), orig_timerslack);
+            }
 
             // And if we set it to "0", it reverts to the "default" value inherited from the parent
             // thread
