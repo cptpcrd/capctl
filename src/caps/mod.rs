@@ -69,7 +69,7 @@ macro_rules! define_cap {
         // Get the lower bits filled with ones
         const CAP_BITMASK: u64 = u64::MAX >> (63 - CAP_MAX);
 
-        static CAP_NAMES: [&str; NUM_CAPS as usize] = [$(stringify!($name),)+];
+        static CAP_NAMES: [&str; NUM_CAPS as usize] = [$(concat!("CAP_", stringify!($name)),)+];
     };
 }
 
@@ -185,12 +185,12 @@ impl core::str::FromStr for Cap {
     type Err = ParseCapError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.len() > 4 && s[..4].eq_ignore_ascii_case("CAP_") {
-            let s = &s[4..];
-
-            for (i, cap_name) in CAP_NAMES.iter().enumerate() {
-                if cap_name.eq_ignore_ascii_case(s) {
-                    return Ok(Cap::from_u8(i as u8).unwrap());
+        if let Some(prefix) = s.get(..4) {
+            if prefix.eq_ignore_ascii_case("CAP_") {
+                for cap in Cap::iter() {
+                    if cap.name().eq_ignore_ascii_case(s) {
+                        return Ok(cap);
+                    }
                 }
             }
         }
@@ -200,9 +200,9 @@ impl core::str::FromStr for Cap {
 }
 
 impl fmt::Display for Cap {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str("CAP_")?;
-        fmt::Debug::fmt(self, f)
+        f.write_str(self.name())
     }
 }
 
@@ -341,21 +341,14 @@ mod tests {
         #[cfg(feature = "std")]
         for cap in Cap::iter() {
             let s = cap.to_string();
+            assert_eq!(format!("CAP_{cap:?}"), s);
             assert_eq!(Cap::from_str(&s), Ok(cap));
             assert_eq!(Cap::from_str(&s.to_lowercase()), Ok(cap));
             assert_eq!(Cap::from_str(&s.to_uppercase()), Ok(cap));
         }
 
         for (cap, name) in Cap::iter().zip(&CAP_NAMES) {
-            // Concatenate strings without allocating
-            let mut full_name = [0u8; 30];
-            full_name[..4].copy_from_slice(b"cap_");
-            full_name[4..name.len() + 4].copy_from_slice(name.as_bytes());
-
-            assert_eq!(
-                Cap::from_str(core::str::from_utf8(&full_name[..name.len() + 4]).unwrap()),
-                Ok(cap)
-            );
+            assert_eq!(Cap::from_str(name), Ok(cap));
         }
     }
 

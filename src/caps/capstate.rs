@@ -381,7 +381,7 @@ mod tests {
                 inheritable: capset!(cap),
             };
 
-            let expected = format!("cap_{}=eip", cap.name().to_lowercase());
+            let expected = format!("{}=eip", cap.name().to_lowercase());
             assert_eq!(state.to_string(), expected);
         }
     }

@@ -162,7 +162,9 @@ pub fn caps_to_text(mut state: CapState, f: &mut fmt::Formatter) -> fmt::Result 
             let mut buf = [0u8; 30];
 
             for (i, cap) in caps.iter().enumerate() {
-                f.write_str(if i == 0 { "cap_" } else { ",cap_" })?;
+                if i > 0 {
+                    f.write_char(',')?;
+                }
 
                 // Copy the capability's name into the buffer
                 let orig_name = cap.name().as_bytes();
