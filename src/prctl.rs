@@ -239,7 +239,7 @@ bitflags::bitflags! {
         /// Note: [`get_keepcaps()`] and [`set_keepcaps()`] provide the same functionality as this
         /// flag (setting the flag via [`set_keepcaps()`] will change its value as perceived by
         /// [`get_securebits()`], and vice versa). However, [`set_keepcaps()`] does not require
-        /// CAP_SETPCAP; changing the securebits does. As a result, if you only need to manipulate
+        /// CAP_SETPCAP; changing this securebit does. As a result, if you only need to manipulate
         /// the `KEEP_CAPS` flag, you may wish to instead use [`get_keepcaps()`] and
         /// [`set_keepcaps()`].
         ///
@@ -259,6 +259,36 @@ bitflags::bitflags! {
 
         /// Locks the `NO_CAP_AMBIENT_RAISE_LOCKED` flag so it cannot be changed.
         const NO_CAP_AMBIENT_RAISE_LOCKED = 0x80;
+
+        /// Indicate to interpreters that they should first check whether a program is allowed to
+        /// be executed with `AT_EXECVE_CHECK` before actually executing the program. (Linux 6.14+)
+        ///
+        /// Unlike most securebits, this can be changed by unprivileged processes. It does not
+        /// actually enforce checks at the kernel level, but rather provides instructions for
+        /// userspace processes regarding what policies to apply.
+        ///
+        /// See the [kernel documentation] for details.
+        ///
+        /// [kernel documentation]: https://docs.kernel.org/userspace-api/check_exec.html#secbit-exec-restrict-file-and-secbit-exec-deny-interactive
+        const EXEC_RESTRICT_FILE = 0x100;
+
+        /// Locks the `EXEC_RESTRICT_FILE` flag so it cannot be changed. (Linux 6.14+)
+        const EXEC_RESTRICT_FILE_LOCKED = 0x200;
+
+        /// Indicate to interpreters that they should not allow execution of interactive user
+        /// commands. (Linux 6.14+)
+        ///
+        /// Unlike most securebits, this can be changed by unprivileged processes. It does not
+        /// actually enforce checks at the kernel level, but rather provides instructions for
+        /// userspace processes regarding what policies to apply.
+        ///
+        /// See the [kernel documentation] for details.
+        ///
+        /// [kernel documentation]: https://docs.kernel.org/userspace-api/check_exec.html#secbit-exec-restrict-file-and-secbit-exec-deny-interactive
+        const EXEC_DENY_INTERACTIVE = 0x400;
+
+        /// Locks the `EXEC_DENY_INTERACTIVE` flag so it cannot be changed. (Linux 6.14+)
+        const EXEC_DENY_INTERACTIVE_LOCKED = 0x800;
     }
 }
 
@@ -274,10 +304,12 @@ pub fn get_securebits() -> crate::Result<Secbits> {
 
 /// Set the "securebits" flags of the current thread.
 ///
-/// The secure bits control various aspects of the handling of capabilities for UID 0. See
-/// [`Secbits`](struct.Secbits.html) and capabilities(7) for more details.
+/// The secure bits primarily control various aspects of the handling of capabilities for UID 0,
+/// though some newer secure bits have other uses. See [`Secbits`](struct.Secbits.html) and
+/// capabilities(7) for more details.
 ///
-/// Note: Modifying the securebits with this function requires the CAP_SETPCAP capability.
+/// Note: Modifying the securebits with this function typically requires the CAP_SETPCAP capability
+/// (though some newer securebits can be changed by unprivileged proceses).
 #[inline]
 pub fn set_securebits(flags: Secbits) -> crate::Result<()> {
     unsafe {
