@@ -11,6 +11,8 @@ categories = ["os::linux-apis"]
 keywords = ["prctl", "capabilities"]
 repository = "https://github.com/cptpcrd/capctl"
 
+rust-version = "1.63"
+
 [features]
 default = ["std"]
 
