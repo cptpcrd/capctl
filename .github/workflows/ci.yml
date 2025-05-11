@@ -60,6 +60,28 @@ jobs:
       - name: Run tests (in user namespace)
         run: unshare -r cargo +${{ matrix.toolchain }} test --verbose --target ${{ matrix.target }} --no-default-features --features "${{ matrix.features }}"
 
+  msrv:
+    name: Verify MSRV
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Disable apparmor
+        run: sudo sysctl kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Set up repo
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Install cargo-msrv
+        run: cargo install cargo-msrv
+
+      - name: Run tarpaulin
+        run: cargo msrv verify --all-features
+
   coverage-tarpaulin:
     name: Tarpaulin
 
