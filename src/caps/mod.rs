@@ -57,6 +57,14 @@ macro_rules! define_cap {
                     _ => None,
                 }
             }
+
+            #[inline]
+            fn from_usize(val: usize) -> Option<Self> {
+                match val {
+                    $($val => Some(Self::$name),)*
+                    _ => None,
+                }
+            }
         }
 
         // WARNING: Unsafe code trusts these constants to be correct!
@@ -242,6 +250,7 @@ pub struct CapIter {
 impl Iterator for CapIter {
     type Item = Cap;
 
+    #[inline]
     fn next(&mut self) -> Option<Cap> {
         debug_assert!(self.i <= NUM_CAPS);
 
@@ -250,12 +259,13 @@ impl Iterator for CapIter {
         Some(cap)
     }
 
+    #[inline]
     fn nth(&mut self, n: usize) -> Option<Cap> {
-        if n < self.len() {
-            self.i += n as u8;
-            self.next()
+        // This structure allows the compiler to avoid repeated calculations/comparisons
+        if let Some(cap) = Cap::from_usize((self.i as usize).saturating_add(n)) {
+            self.i = cap as u8 + 1;
+            Some(cap)
         } else {
-            // The specified index would exhaust the iterator
             self.i = NUM_CAPS;
             None
         }
@@ -317,6 +327,17 @@ mod tests {
 
         for i in NUM_CAPS..=u8::MAX {
             assert_eq!(Cap::from_u8(i), None);
+        }
+    }
+
+    #[test]
+    fn test_cap_usize() {
+        for i in 0..(NUM_CAPS as usize) {
+            assert_eq!(Cap::from_usize(i).unwrap() as usize, i);
+        }
+
+        for i in (NUM_CAPS as usize)..=(u8::MAX as usize * 2) {
+            assert_eq!(Cap::from_usize(i), None);
         }
     }
 
@@ -399,6 +420,17 @@ mod tests {
         assert_eq!(Cap::iter().nth(0), Some(Cap::CHOWN));
         assert_eq!(Cap::iter().nth(1), Some(Cap::DAC_OVERRIDE));
         assert_eq!(Cap::iter().nth(NUM_CAPS as usize - 1), Some(LAST_CAP));
+        assert_eq!(Cap::iter().nth(NUM_CAPS as usize), None);
+
+        for (i, cap) in Cap::iter().enumerate() {
+            assert_eq!(Cap::iter().nth(i), Some(cap));
+
+            let mut it = Cap::iter();
+            for _ in 0..(i / 2) {
+                it.next().unwrap();
+            }
+            assert_eq!(it.nth((i / 2) + (i % 2)), Some(cap));
+        }
     }
 
     #[allow(clippy::iter_nth_zero)]
