@@ -147,6 +147,7 @@ impl Cap {
     /// capabilities. It is more efficient than a simple `Cap::iter()`/`Cap::is_supported()` loop.
     ///
     /// [`Cap::is_supported()`]: #method.is_supported
+    #[must_use = "probing the supported capabilities is relatively expensive and the result should be used"]
     pub fn probe_supported() -> CapSet {
         // Do a binary search
 

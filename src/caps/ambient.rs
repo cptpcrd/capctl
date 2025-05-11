@@ -85,6 +85,7 @@ pub fn is_supported() -> bool {
 /// the capabilities that are currently raised.
 ///
 /// Returns `None` if ambient capabilities are not supported on the running kernel.
+#[must_use = "probing the ambient set is relatively expensive and the result should be used"]
 pub fn probe() -> Option<CapSet> {
     let mut set = CapSet::empty();
 

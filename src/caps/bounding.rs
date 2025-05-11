@@ -44,6 +44,7 @@ pub fn is_set(cap: Cap) -> Option<bool> {
 
 /// "Probes" the current thread's bounding capability set and returns a `CapSet` representing all
 /// the capabilities that are currently raised.
+#[must_use = "probing the bounding set is relatively expensive and the result should be used"]
 pub fn probe() -> CapSet {
     let mut set = CapSet::empty();
 
@@ -169,7 +170,7 @@ mod tests {
 
     #[test]
     fn test_bounding() {
-        probe();
+        let _ = probe();
         read(Cap::CHOWN).unwrap();
     }
 
