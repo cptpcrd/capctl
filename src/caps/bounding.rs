@@ -100,7 +100,7 @@ fn ensure_dropped_raw(cap: libc::c_ulong) -> crate::Result<()> {
 }
 
 fn clear_from(low: libc::c_ulong) -> crate::Result<()> {
-    for cap in low..(super::CAP_MAX as libc::c_ulong * 2) {
+    for cap in low..=255 {
         match ensure_dropped_raw(cap) {
             Ok(()) => (),
             // Unknown capability
