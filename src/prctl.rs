@@ -1,5 +1,7 @@
 //! Interfaces to `prctl()` commands that don't deal with capabilities.
 
+use core::convert::TryInto;
+
 /// Set the name of the current thread.
 ///
 /// If the given name is longer than 15 bytes, it will be truncated to the first 15 bytes.
@@ -798,6 +800,98 @@ pub fn get_mdwe() -> crate::Result<MDWEFlags> {
     Ok(MDWEFlags::from_bits_truncate(res))
 }
 
+/// Get the auxiliary vector.
+///
+/// The vector is written into the provided buffer. If the buffer is too short, it is truncated.
+/// The return value is the full size of the vector.
+///
+/// # Example
+///
+/// ```
+/// # use capctl::prctl::*;
+/// let n = get_auxv(&mut []).unwrap();
+/// let mut buf = vec![0; n];
+/// get_auxv(&mut buf).unwrap();
+/// // ...
+/// ```
+#[inline]
+pub fn get_auxv(buf: &mut [u8]) -> crate::Result<usize> {
+    unsafe {
+        crate::raw_prctl(
+            crate::sys::PR_GET_AUXV,
+            buf.as_mut_ptr() as _,
+            buf.len() as _,
+            0,
+            0,
+        )
+    }
+    .map(|n| n as usize)
+}
+
+/// A simple iterator over the contents of the auxiliary vector.
+///
+/// Stops when there are fewer than `std::mem::size_of::<usize>() * 2` bytes left, or when the first
+/// `AT_NULL` (0) ID is encountered.
+///
+/// # Example
+///
+/// ```
+/// # use capctl::prctl::*;
+/// let n = get_auxv(&mut []).unwrap();
+/// let mut buf = vec![0; n];
+/// get_auxv(&mut buf).unwrap();
+/// for (id, value) in AuxvIter::new(&buf) {
+///     println!("{id} => {value}");
+/// }
+/// ```
+#[derive(Clone, Debug)]
+pub struct AuxvIter<'a>(&'a [u8]);
+
+impl<'a> AuxvIter<'a> {
+    #[inline]
+    pub fn new(auxv: &'a [u8]) -> Self {
+        Self(auxv)
+    }
+}
+
+impl Iterator for AuxvIter<'_> {
+    type Item = (usize, usize);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        const WORDSIZE: usize = core::mem::size_of::<usize>();
+        if self.0.len() < WORDSIZE * 2 {
+            return None;
+        }
+        let (chunk, rest) = self.0.split_at(WORDSIZE * 2);
+        let id = usize::from_ne_bytes(chunk[..WORDSIZE].try_into().unwrap());
+        if id as libc::c_ulong == libc::AT_NULL {
+            return None;
+        }
+        let value = usize::from_ne_bytes(chunk[WORDSIZE..].try_into().unwrap());
+        self.0 = rest;
+        Some((id, value))
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        const WORDSIZE: usize = core::mem::size_of::<usize>();
+        // Peek at the next entry to see if there's at least 1 element, and determine an upper bound
+        // based on the length
+        (
+            match self
+                .0
+                .get(..WORDSIZE * 2)
+                .map(|s| usize::from_ne_bytes(s[..WORDSIZE].try_into().unwrap()) as libc::c_ulong)
+            {
+                Some(libc::AT_NULL) | None => 0,
+                Some(_) => 1,
+            },
+            Some(self.0.len() / (WORDSIZE * 2)),
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1085,6 +1179,53 @@ mod tests {
                 }
             }
             // EINVAL -> kernel does not support PR_GET_MDWE
+            Err(e) if e.code() == libc::EINVAL => (),
+            Err(e) => panic!("{}", e),
+        }
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn test_get_auxv() {
+        // Get the length
+        match get_auxv(&mut []) {
+            Ok(n) => {
+                // Retrieve the actual vector
+                let mut buf = vec![0; n];
+                assert_eq!(n, get_auxv(&mut buf).unwrap());
+                // Consists of several (usize, usize) entries
+                assert_eq!(n % (std::mem::size_of::<usize>() * 2), 0);
+                let it = AuxvIter::new(&buf);
+                assert_eq!(
+                    it.size_hint(),
+                    (1, Some(n / (std::mem::size_of::<usize>() * 2))),
+                );
+                for (id, value) in it {
+                    assert_ne!(id, libc::AT_NULL as _);
+                    match id as libc::c_ulong {
+                        libc::AT_EXECFD
+                        | libc::AT_EXECFN
+                        | libc::AT_UID
+                        | libc::AT_EUID
+                        | libc::AT_SECURE
+                        | libc::AT_RANDOM
+                        | libc::AT_CLKTCK
+                        | libc::AT_PAGESZ => {
+                            assert_eq!(value, unsafe { libc::getauxval(id as _) } as usize, "{id}");
+                        }
+                        // getauxval() changes the values of some entries, so don't try to match
+                        // every entry
+                        _ => (),
+                    }
+                }
+
+                assert!(
+                    AuxvIter::new(&buf)
+                        .eq(AuxvIter::new(&std::fs::read("/proc/self/auxv").unwrap())),
+                    "PR_GET_AUXV does not match /proc/self/auxv",
+                );
+            }
+            // EINVAL -> kernel does not support PR_GET_AUXV
             Err(e) if e.code() == libc::EINVAL => (),
             Err(e) => panic!("{}", e),
         }

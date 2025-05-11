@@ -47,6 +47,8 @@ pub const PR_GET_MDWE: libc::c_int = 66;
 pub const PR_MDWE_REFUSE_EXEC_GAIN: libc::c_int = 1 << 0;
 pub const PR_MDWE_NO_INHERIT: libc::c_int = 1 << 1;
 
+pub const PR_GET_AUXV: libc::c_int = 0x41555856;
+
 // File capabilities constants
 #[cfg(feature = "std")]
 mod file {
