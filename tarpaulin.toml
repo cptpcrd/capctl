@@ -10,5 +10,8 @@ features = "serde"
 no-default-features = true
 features = "serde"
 
+[sc_coverage]
+features = "sc"
+
 [report]
 out = ["Html"]
