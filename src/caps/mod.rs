@@ -221,7 +221,7 @@ impl fmt::Debug for ParseCapError {
 impl fmt::Display for ParseCapError {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Unknown capability")
+        f.write_str("Unknown capability")
     }
 }
 

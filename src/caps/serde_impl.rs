@@ -21,8 +21,9 @@ struct CapSetVisitor;
 impl<'de> Visitor<'de> for CapSetVisitor {
     type Value = CapSet;
 
+    #[inline]
     fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
-        write!(formatter, "a set of Linux capability names")
+        formatter.write_str("a set of Linux capability names")
     }
 
     fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
