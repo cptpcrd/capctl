@@ -740,13 +740,17 @@ bitflags::bitflags! {
         ///
         /// This flag cannot be unset once it is set.
         const REFUSE_EXEC_GAIN = crate::sys::PR_MDWE_REFUSE_EXEC_GAIN;
+        /// Prevent child processes from inheriting the MDWE flags. (Linux 6.6+)
+        ///
+        /// If this flag is set, then any child processes spawned will start with the MDWE flags
+        /// set to zero.
+        const NO_INHERIT = crate::sys::PR_MDWE_NO_INHERIT;
     }
 }
 
 /// Set the memory-deny-write execute flags.
 ///
-/// Currently there is only one flag ([`MDWEFlags::REFUSE_EXEC_GAIN`]), which disallows creating
-/// executable mappings that are/were writable.
+/// Once the flags have been set, they cannot be changed or unset in the current process.
 #[inline]
 pub fn set_mdwe(flags: MDWEFlags) -> crate::Result<()> {
     unsafe { crate::raw_prctl(crate::sys::PR_SET_MDWE, flags.bits() as _, 0, 0, 0) }?;

@@ -44,7 +44,8 @@ pub const PR_GET_IO_FLUSHER: libc::c_int = 58;
 pub const PR_SET_MDWE: libc::c_int = 65;
 pub const PR_GET_MDWE: libc::c_int = 66;
 
-pub const PR_MDWE_REFUSE_EXEC_GAIN: libc::c_int = 1;
+pub const PR_MDWE_REFUSE_EXEC_GAIN: libc::c_int = 1 << 0;
+pub const PR_MDWE_NO_INHERIT: libc::c_int = 1 << 1;
 
 // File capabilities constants
 #[cfg(feature = "std")]
