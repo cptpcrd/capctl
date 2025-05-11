@@ -35,6 +35,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Disable apparmor
+        run: sudo sysctl kernel.apparmor_restrict_unprivileged_userns=0
       - name: Set up repo
         uses: actions/checkout@v4
       - name: Install Rust toolchain
@@ -85,6 +87,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Disable apparmor
+        run: sudo sysctl kernel.apparmor_restrict_unprivileged_userns=0
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
